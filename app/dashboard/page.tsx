@@ -12,23 +12,23 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Cargar perfil, fijos y variables en paralelo — más rápido que en serie
-  const [perfilRes, fijosRes, varsRes] = await Promise.all([
+  // Cargar todos los datos en paralelo
+  const [perfilRes, fijosRes, varsRes, deudasRes, abonosRes] = await Promise.all([
     supabase.from("perfiles").select("*").eq("id", user.id).single(),
     supabase.from("gastos_fijos").select("*").eq("user_id", user.id).eq("quincena", quincena).order("created_at"),
     supabase.from("gastos_variables").select("*").eq("user_id", user.id).eq("quincena", quincena).order("created_at", { ascending: false }),
+    supabase.from("deudas").select("*").eq("user_id", user.id).order("created_at"),
+    supabase.from("abonos").select("*").eq("user_id", user.id).order("fecha", { ascending: false }),
   ]);
-
-  const perfil   = perfilRes.data;
-  const fijos    = fijosRes.data   ?? [];
-  const variables = varsRes.data   ?? [];
 
   return (
     <DashboardClient
       userId={user.id}
-      perfil={perfil}
-      fijosIniciales={fijos}
-      variablesIniciales={variables}
+      perfil={perfilRes.data}
+      fijosIniciales={fijosRes.data ?? []}
+      variablesIniciales={varsRes.data ?? []}
+      deudasIniciales={deudasRes.data ?? []}
+      abonosIniciales={abonosRes.data ?? []}
       quincena={quincena}
     />
   );

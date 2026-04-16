@@ -83,7 +83,52 @@ create policy "usuarios borran sus gastos variables"
   on public.gastos_variables for delete
   using (auth.uid() = user_id);
 
--- 4. FUNCIÓN AUTOMÁTICA: crear perfil al hacer signup
+-- 4. DEUDAS
+create table public.deudas (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  nombre text not null,
+  monto_total numeric not null default 0,
+  created_at timestamptz default now()
+);
+
+alter table public.deudas enable row level security;
+
+create policy "usuarios ven sus deudas"
+  on public.deudas for select using (auth.uid() = user_id);
+
+create policy "usuarios insertan sus deudas"
+  on public.deudas for insert with check (auth.uid() = user_id);
+
+create policy "usuarios actualizan sus deudas"
+  on public.deudas for update using (auth.uid() = user_id);
+
+create policy "usuarios borran sus deudas"
+  on public.deudas for delete using (auth.uid() = user_id);
+
+-- 5. ABONOS A DEUDAS
+create table public.abonos (
+  id uuid default gen_random_uuid() primary key,
+  deuda_id uuid references public.deudas(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  monto numeric not null,
+  nota text not null default '',
+  fecha date not null default current_date,
+  created_at timestamptz default now()
+);
+
+alter table public.abonos enable row level security;
+
+create policy "usuarios ven sus abonos"
+  on public.abonos for select using (auth.uid() = user_id);
+
+create policy "usuarios insertan sus abonos"
+  on public.abonos for insert with check (auth.uid() = user_id);
+
+create policy "usuarios borran sus abonos"
+  on public.abonos for delete using (auth.uid() = user_id);
+
+-- 6. FUNCIÓN AUTOMÁTICA: crear perfil al hacer signup
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin

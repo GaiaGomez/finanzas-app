@@ -34,3 +34,21 @@ export interface Perfil {
   ingreso_quincenal: number;
   updated_at: string;
 }
+
+export interface Deuda {
+  id: string;
+  user_id: string;
+  nombre: string;
+  monto_total: number;
+  created_at: string;
+}
+
+export interface Abono {
+  id: string;
+  deuda_id: string;
+  user_id: string;
+  monto: number;
+  nota: string;
+  fecha: string;
+  created_at: string;
+}

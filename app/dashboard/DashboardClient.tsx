@@ -5,7 +5,7 @@
 import { useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
 import { fmtCOP, getQuincenaLabel, COLOR_CAT } from "@/lib/utils";
-import type { GastoFijo, GastoVariable, Perfil } from "@/types";
+import type { GastoFijo, GastoVariable, Perfil, Deuda, Abono } from "@/types";
 import Bar from "@/components/ui/Bar";
 import Dot from "@/components/ui/Dot";
 import Editable from "@/components/ui/Editable";
@@ -18,20 +18,29 @@ interface Props {
   perfil: Perfil | null;
   fijosIniciales: GastoFijo[];
   variablesIniciales: GastoVariable[];
+  deudasIniciales: Deuda[];
+  abonosIniciales: Abono[];
   quincena: string;
 }
 
-export default function DashboardClient({ userId, perfil, fijosIniciales, variablesIniciales, quincena }: Props) {
+export default function DashboardClient({ userId, perfil, fijosIniciales, variablesIniciales, deudasIniciales, abonosIniciales, quincena }: Props) {
   const supabase = createClient();
 
-  const [tab, setTab]       = useState<"fijos"|"variables"|"resumen">("fijos");
+  const [tab, setTab]       = useState<"fijos"|"variables"|"resumen"|"deudas">("fijos");
   const [ingreso, setIngreso] = useState(perfil?.ingreso_quincenal ?? 1600000);
   const [fijos, setFijos]   = useState<GastoFijo[]>(fijosIniciales);
   const [vars, setVars]     = useState<GastoVariable[]>(variablesIniciales);
+  const [deudas, setDeudas] = useState<Deuda[]>(deudasIniciales);
+  const [abonos, setAbonos] = useState<Abono[]>(abonosIniciales);
   const [formFijo, setFormFijo] = useState(false);
   const [formVar, setFormVar]   = useState(false);
+  const [formDeuda, setFormDeuda] = useState(false);
   const [nFijo, setNFijo]   = useState({ nombre: "", categoria: "Casa", monto: "" });
   const [nVar, setNVar]     = useState({ descripcion: "", categoria: "Otro", monto: "" });
+  const [nDeuda, setNDeuda] = useState({ nombre: "", monto_total: "" });
+  const [abonoAbierto, setAbonoAbierto]   = useState<string | null>(null);
+  const [nAbono, setNAbono] = useState({ monto: "", nota: "" });
+  const [expandida, setExpandida] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // ── CÁLCULOS ──
@@ -111,6 +120,54 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
     await supabase.from("gastos_variables").delete().eq("id", id);
   }
 
+  // ── HELPERS DEUDAS ──
+  const pagadoPor = useCallback((deudaId: string) =>
+    abonos.filter(a => a.deuda_id === deudaId).reduce((s, a) => s + a.monto, 0), [abonos]);
+
+  async function addDeuda() {
+    const monto = parseFloat(nDeuda.monto_total);
+    if (!nDeuda.nombre.trim() || isNaN(monto) || monto <= 0) return;
+    setSaving(true);
+    const { data } = await supabase.from("deudas").insert({
+      user_id: userId, nombre: nDeuda.nombre, monto_total: monto,
+    }).select().single();
+    if (data) setDeudas(prev => [...prev, data]);
+    setNDeuda({ nombre: "", monto_total: "" });
+    setFormDeuda(false);
+    setSaving(false);
+  }
+
+  async function editDeuda(id: string, campo: keyof Deuda, valor: string | number) {
+    setDeudas(prev => prev.map(d => d.id === id ? { ...d, [campo]: valor } : d));
+    await supabase.from("deudas").update({ [campo]: valor }).eq("id", id);
+  }
+
+  async function delDeuda(id: string) {
+    setDeudas(prev => prev.filter(d => d.id !== id));
+    setAbonos(prev => prev.filter(a => a.deuda_id !== id));
+    await supabase.from("deudas").delete().eq("id", id);
+  }
+
+  async function addAbono(deudaId: string) {
+    const monto = parseFloat(nAbono.monto);
+    if (isNaN(monto) || monto <= 0) return;
+    setSaving(true);
+    const { data } = await supabase.from("abonos").insert({
+      deuda_id: deudaId, user_id: userId, monto,
+      nota: nAbono.nota.trim(),
+      fecha: new Date().toISOString().split("T")[0],
+    }).select().single();
+    if (data) setAbonos(prev => [data, ...prev]);
+    setNAbono({ monto: "", nota: "" });
+    setAbonoAbierto(null);
+    setSaving(false);
+  }
+
+  async function delAbono(id: string) {
+    setAbonos(prev => prev.filter(a => a.id !== id));
+    await supabase.from("abonos").delete().eq("id", id);
+  }
+
   async function logout() {
     await supabase.auth.signOut();
     window.location.href = "/auth";
@@ -177,10 +234,10 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
 
       {/* ══ TABS ══ */}
       <div className="max-w-xl mx-auto px-4 pt-4">
-        <div className="flex gap-1.5 mb-4">
-          {([["fijos","💳 Fijos"],["variables","🛒 Variables"],["resumen","📊 Resumen"]] as const).map(([k,l]) => (
+        <div className="grid grid-cols-4 gap-1.5 mb-4">
+          {([["fijos","💳 Fijos"],["variables","🛒 Variables"],["deudas","💸 Deudas"],["resumen","📊 Resumen"]] as const).map(([k,l]) => (
             <button key={k} onClick={() => setTab(k as any)}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`py-2 rounded-xl text-[11px] font-bold transition-all ${
                 tab === k
                   ? "bg-brand-purple text-brand-bg shadow-lg shadow-brand-purple/30"
                   : "bg-brand-card text-brand-muted"
@@ -393,6 +450,176 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
             ))}
           </div>
         )}
+
+        {/* ════ TAB: DEUDAS ════ */}
+        {tab === "deudas" && (() => {
+          const totalDeuda    = deudas.reduce((s, d) => s + d.monto_total, 0);
+          const totalPagado   = deudas.reduce((s, d) => s + pagadoPor(d.id), 0);
+          const totalPendiente = totalDeuda - totalPagado;
+
+          return (
+            <div className="flex flex-col gap-3">
+
+              {/* Resumen global */}
+              <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
+                <p className="text-[10px] text-brand-purple font-bold uppercase tracking-widest mb-3">Resumen de deudas</p>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {[
+                    { label: "Total deuda",   val: totalDeuda,    color: "text-brand-red" },
+                    { label: "Pagado",         val: totalPagado,   color: "text-brand-green" },
+                    { label: "Pendiente",      val: totalPendiente, color: "text-brand-yellow" },
+                  ].map((s, i) => (
+                    <div key={i} className="flex flex-col gap-0.5">
+                      <span className="text-[9px] text-brand-muted uppercase tracking-wider">{s.label}</span>
+                      <span className={`text-sm font-extrabold font-mono ${s.color}`}>{fmtCOP(s.val)}</span>
+                    </div>
+                  ))}
+                </div>
+                {totalDeuda > 0 && (
+                  <Bar val={totalPagado} total={totalDeuda} color="#4ade80" />
+                )}
+              </div>
+
+              {/* Lista de deudas */}
+              {deudas.map(d => {
+                const pagado    = pagadoPor(d.id);
+                const pendiente = d.monto_total - pagado;
+                const pctD      = d.monto_total > 0 ? Math.min((pagado / d.monto_total) * 100, 100) : 0;
+                const saldada   = pendiente <= 0;
+                const misAbonos = abonos.filter(a => a.deuda_id === d.id);
+
+                return (
+                  <div key={d.id} className={`bg-brand-card border rounded-2xl overflow-hidden transition-all ${saldada ? "border-brand-green/40" : "border-brand-border"}`}>
+                    {/* Cabecera deuda */}
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Editable value={d.nombre} tipo="text"
+                              onSave={v => editDeuda(d.id, "nombre", v)}
+                              className="text-sm font-bold text-white block" />
+                            {saldada && <span className="text-[10px] bg-brand-green/20 text-brand-green font-bold px-2 py-0.5 rounded-full flex-shrink-0">Saldada ✓</span>}
+                          </div>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span className="text-[10px] text-brand-muted">Total:</span>
+                            <Editable value={d.monto_total} tipo="number"
+                              onSave={v => editDeuda(d.id, "monto_total", v as number)}
+                              className="text-[10px] text-brand-muted font-mono" />
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-[10px] text-brand-muted">Pendiente</p>
+                          <p className={`text-base font-extrabold font-mono ${saldada ? "text-brand-green" : "text-brand-red"}`}>
+                            {fmtCOP(Math.max(pendiente, 0))}
+                          </p>
+                          <p className="text-[10px] text-brand-muted">{pctD.toFixed(1)}% pagado</p>
+                        </div>
+                      </div>
+
+                      <Bar val={pagado} total={d.monto_total} color={saldada ? "#4ade80" : "#a78bfa"} />
+
+                      {/* Acciones */}
+                      <div className="flex gap-2 mt-3">
+                        {!saldada && (
+                          <button
+                            onClick={() => { setAbonoAbierto(abonoAbierto === d.id ? null : d.id); setNAbono({ monto: "", nota: "" }); }}
+                            className="flex-1 py-2 rounded-xl text-xs font-bold bg-brand-purple/20 text-brand-purple hover:bg-brand-purple/30 transition-colors">
+                            + Abonar
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setExpandida(expandida === d.id ? null : d.id)}
+                          className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#1a1730] text-brand-muted hover:text-white transition-colors">
+                          {expandida === d.id ? "Ocultar" : `Ver abonos (${misAbonos.length})`}
+                        </button>
+                        <button onClick={() => delDeuda(d.id)}
+                          className="px-3 py-2 rounded-xl text-brand-muted hover:text-brand-red transition-colors text-lg leading-none">×</button>
+                      </div>
+
+                      {/* Form abono */}
+                      {abonoAbierto === d.id && (
+                        <div className="mt-3 p-3 bg-[#1a1730] rounded-xl border border-brand-purple/20">
+                          <p className="text-[10px] text-brand-purple font-bold mb-2">Registrar abono</p>
+                          <div className="flex gap-2 mb-2">
+                            <input type="number" value={nAbono.monto}
+                              onChange={e => setNAbono(p => ({ ...p, monto: e.target.value }))}
+                              placeholder="Monto" className={`${inputCls} flex-1 text-right font-mono`}
+                              onKeyDown={e => e.key === "Enter" && addAbono(d.id)} />
+                            <input value={nAbono.nota}
+                              onChange={e => setNAbono(p => ({ ...p, nota: e.target.value }))}
+                              placeholder="Nota (opcional)" className={`${inputCls} flex-1`}
+                              onKeyDown={e => e.key === "Enter" && addAbono(d.id)} />
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => addAbono(d.id)} disabled={saving || !nAbono.monto}
+                              className="flex-1 bg-brand-purple text-brand-bg font-bold py-2 rounded-xl text-xs disabled:opacity-50">
+                              {saving ? "Guardando…" : "Guardar abono"}
+                            </button>
+                            <button onClick={() => setAbonoAbierto(null)}
+                              className="px-4 py-2 rounded-xl bg-[#13101f] text-brand-muted text-xs">
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Historial abonos */}
+                    {expandida === d.id && (
+                      <div className="border-t border-brand-border">
+                        {misAbonos.length === 0 ? (
+                          <p className="text-brand-muted text-xs text-center py-4">Sin abonos registrados</p>
+                        ) : misAbonos.map((a, i) => (
+                          <div key={a.id} className={`flex items-center gap-3 px-4 py-2.5 ${i < misAbonos.length - 1 ? "border-b border-brand-border" : ""}`}>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-brand-green font-mono">+ {fmtCOP(a.monto)}</p>
+                              <p className="text-[10px] text-brand-muted">
+                                {new Date(a.fecha + "T00:00:00").toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" })}
+                                {a.nota && <span className="ml-2 italic">· {a.nota}</span>}
+                              </p>
+                            </div>
+                            <button onClick={() => delAbono(a.id)}
+                              className="text-[#2a2440] hover:text-brand-red text-lg leading-none transition-colors">×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Form nueva deuda */}
+              {formDeuda ? (
+                <div className="bg-brand-card border border-brand-red/30 rounded-2xl p-4">
+                  <p className="text-xs text-brand-red font-bold mb-3">Nueva deuda</p>
+                  <div className="flex flex-col gap-2">
+                    <input value={nDeuda.nombre} onChange={e => setNDeuda(p => ({ ...p, nombre: e.target.value }))}
+                      placeholder="Nombre de la deuda" className={inputCls}
+                      onKeyDown={e => e.key === "Enter" && addDeuda()} />
+                    <input type="number" value={nDeuda.monto_total} onChange={e => setNDeuda(p => ({ ...p, monto_total: e.target.value }))}
+                      placeholder="Monto total de la deuda" className={`${inputCls} text-right font-mono`}
+                      onKeyDown={e => e.key === "Enter" && addDeuda()} />
+                    <div className="flex gap-2">
+                      <button onClick={addDeuda} disabled={saving || !nDeuda.nombre || !nDeuda.monto_total}
+                        className="flex-1 bg-brand-red text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
+                        {saving ? "Guardando…" : "Agregar deuda"}
+                      </button>
+                      <button onClick={() => setFormDeuda(false)}
+                        className="bg-[#1e1b2e] text-brand-muted font-semibold px-4 py-2.5 rounded-xl text-sm">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setFormDeuda(true)}
+                  className="w-full py-3 rounded-2xl border border-dashed border-[#2a2440] text-brand-muted text-sm font-semibold hover:border-brand-red hover:text-brand-red transition-colors">
+                  + Agregar deuda
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ════ TAB: RESUMEN ════ */}
         {tab === "resumen" && (
