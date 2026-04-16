@@ -11,9 +11,10 @@ interface Props {
   onSave: (v: string | number) => void;
   className?: string;
   placeholder?: string;
+  style?: React.CSSProperties;
 }
 
-export default function Editable({ value, tipo = "text", opciones = [], onSave, className = "", placeholder = "—" }: Props) {
+export default function Editable({ value, tipo = "text", opciones = [], onSave, className = "", placeholder = "—", style }: Props) {
   const [on, setOn]   = useState(false);
   const [tmp, setTmp] = useState("");
   const ref           = useRef<HTMLInputElement & HTMLSelectElement>(null);
@@ -39,6 +40,7 @@ export default function Editable({ value, tipo = "text", opciones = [], onSave, 
       onClick={abrir}
       title="Click para editar"
       className={`cursor-text border-b border-dashed border-[#2a2440] pb-px ${className}`}
+      style={style}
     >
       {tipo === "number"
         ? fmtCOP(value as number)
