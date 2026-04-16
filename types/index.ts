@@ -13,7 +13,7 @@ export interface GastoFijo {
   categoria: Categoria;
   monto: number;
   pagado: boolean;
-  quincena: string;   // "2024-01-Q1" o "2024-01-Q2"
+  periodo: string;   // "2026-04"
   created_at: string;
 }
 
@@ -24,7 +24,17 @@ export interface GastoVariable {
   categoria: CategoriaVariable;
   monto: number;
   fecha: string;
-  quincena: string;
+  periodo: string;   // "2026-04"
+  created_at: string;
+}
+
+export interface Ingreso {
+  id: string;
+  user_id: string;
+  monto: number;
+  descripcion: string;
+  fecha: string;
+  periodo: string;   // "2026-04"
   created_at: string;
 }
 

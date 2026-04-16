@@ -1,11 +1,9 @@
-// app/dashboard/DashboardClient.tsx
-// Toda la lógica interactiva del dashboard — equivalente al Artifact pero conectado a Supabase
 "use client";
 
 import { useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
-import { fmtCOP, getQuincenaLabel, COLOR_CAT } from "@/lib/utils";
-import type { GastoFijo, GastoVariable, Perfil, Deuda, Abono } from "@/types";
+import { fmtCOP, getPeriodoLabel, nextPeriodo, prevPeriodo, COLOR_CAT } from "@/lib/utils";
+import type { GastoFijo, GastoVariable, Ingreso, Perfil, Deuda, Abono } from "@/types";
 import Bar from "@/components/ui/Bar";
 import Dot from "@/components/ui/Dot";
 import Editable from "@/components/ui/Editable";
@@ -16,50 +14,96 @@ const CATS_VARIABLES = ["Cuidado personal","Comida fuera","Entretenimiento","Rop
 interface Props {
   userId: string;
   perfil: Perfil | null;
+  periodoInicial: string;
   fijosIniciales: GastoFijo[];
   variablesIniciales: GastoVariable[];
+  ingresosIniciales: Ingreso[];
   deudasIniciales: Deuda[];
   abonosIniciales: Abono[];
-  quincena: string;
 }
 
-export default function DashboardClient({ userId, perfil, fijosIniciales, variablesIniciales, deudasIniciales, abonosIniciales, quincena }: Props) {
+export default function DashboardClient({
+  userId, perfil, periodoInicial,
+  fijosIniciales, variablesIniciales, ingresosIniciales,
+  deudasIniciales, abonosIniciales,
+}: Props) {
   const supabase = createClient();
 
-  const [tab, setTab]       = useState<"fijos"|"variables"|"resumen"|"deudas">("fijos");
-  const [ingreso, setIngreso] = useState(perfil?.ingreso_quincenal ?? 1600000);
-  const [fijos, setFijos]   = useState<GastoFijo[]>(fijosIniciales);
-  const [vars, setVars]     = useState<GastoVariable[]>(variablesIniciales);
-  const [deudas, setDeudas] = useState<Deuda[]>(deudasIniciales);
-  const [abonos, setAbonos] = useState<Abono[]>(abonosIniciales);
-  const [formFijo, setFormFijo] = useState(false);
-  const [formVar, setFormVar]   = useState(false);
+  // ── ESTADO ──
+  const [tab, setTab]         = useState<"fijos"|"variables"|"deudas"|"resumen">("fijos");
+  const [periodo, setPeriodo] = useState(periodoInicial);
+  const [fijos, setFijos]     = useState<GastoFijo[]>(fijosIniciales);
+  const [vars, setVars]       = useState<GastoVariable[]>(variablesIniciales);
+  const [ingresos, setIngresos] = useState<Ingreso[]>(ingresosIniciales);
+  const [deudas, setDeudas]   = useState<Deuda[]>(deudasIniciales);
+  const [abonos, setAbonos]   = useState<Abono[]>(abonosIniciales);
+
+  const [formFijo, setFormFijo]   = useState(false);
+  const [formVar, setFormVar]     = useState(false);
   const [formDeuda, setFormDeuda] = useState(false);
-  const [nFijo, setNFijo]   = useState({ nombre: "", categoria: "Casa", monto: "" });
-  const [nVar, setNVar]     = useState({ descripcion: "", categoria: "Otro", monto: "" });
+  const [modalIngreso, setModalIngreso] = useState(false);
+
+  const [nFijo,  setNFijo]  = useState({ nombre: "", categoria: "Casa", monto: "" });
+  const [nVar,   setNVar]   = useState({ descripcion: "", categoria: "Otro", monto: "" });
   const [nDeuda, setNDeuda] = useState({ nombre: "", monto_total: "" });
-  const [abonoAbierto, setAbonoAbierto]     = useState<string | null>(null);
+  const [nIngreso, setNIngreso] = useState({ monto: "", descripcion: "Pago" });
+
+  const [abonoAbierto,   setAbonoAbierto]   = useState<string | null>(null);
   const [aumentoAbierto, setAumentoAbierto] = useState<string | null>(null);
-  const [nAbono, setNAbono]   = useState({ monto: "", nota: "" });
+  const [expandida,      setExpandida]      = useState<string | null>(null);
+  const [nAbono,   setNAbono]   = useState({ monto: "", nota: "" });
   const [nAumento, setNAumento] = useState({ monto: "", nota: "" });
-  const [expandida, setExpandida] = useState<string | null>(null);
+
   const [saving, setSaving] = useState(false);
 
   // ── CÁLCULOS ──
+  const totalIngresos = ingresos.reduce((s, i) => s + i.monto, 0);
   const gastadoFijos  = fijos.filter(g => g.pagado).reduce((s, g) => s + g.monto, 0);
-  const totalFijosMes = fijos.reduce((s, g) => s + g.monto, 0);
+  const totalFijos    = fijos.reduce((s, g) => s + g.monto, 0);
   const totalVars     = vars.reduce((s, g) => s + g.monto, 0);
-  const gastadoTotal  = gastadoFijos + totalVars;
-  const disponible    = ingreso - gastadoTotal;
-  const pct           = ingreso > 0 ? Math.min((gastadoTotal / ingreso) * 100, 100) : 0;
+  const gastado       = gastadoFijos + totalVars;
+  const disponible    = totalIngresos - gastado;
+  const pct           = totalIngresos > 0 ? Math.min((gastado / totalIngresos) * 100, 100) : 0;
+  const cats          = [...new Set(fijos.map(g => g.categoria))];
 
-  // ── ACTUALIZAR INGRESO ──
-  async function actualizarIngreso(v: number) {
-    setIngreso(v);
-    await supabase.from("perfiles").upsert({ id: userId, ingreso_quincenal: v });
+  // ── CAMBIO DE PERIODO (recarga datos desde cliente) ──
+  async function cambiarPeriodo(p: string) {
+    setPeriodo(p);
+    setFijos([]); setVars([]); setIngresos([]);
+    const [f, v, i] = await Promise.all([
+      supabase.from("gastos_fijos").select("*").eq("user_id", userId).eq("periodo", p).order("created_at"),
+      supabase.from("gastos_variables").select("*").eq("user_id", userId).eq("periodo", p).order("created_at", { ascending: false }),
+      supabase.from("ingresos").select("*").eq("user_id", userId).eq("periodo", p).order("fecha", { ascending: false }),
+    ]);
+    setFijos(f.data ?? []);
+    setVars(v.data ?? []);
+    setIngresos(i.data ?? []);
   }
 
-  // ── HANDLERS FIJOS ──
+  // ── INGRESOS ──
+  async function addIngreso() {
+    const monto = parseFloat(nIngreso.monto);
+    if (isNaN(monto) || monto <= 0) return;
+    setSaving(true);
+    const { data } = await supabase.from("ingresos").insert({
+      user_id: userId,
+      monto,
+      descripcion: nIngreso.descripcion.trim() || "Pago",
+      fecha: new Date().toISOString().split("T")[0],
+      periodo,
+    }).select().single();
+    if (data) setIngresos(prev => [data, ...prev]);
+    setNIngreso({ monto: "", descripcion: "Pago" });
+    setModalIngreso(false);
+    setSaving(false);
+  }
+
+  async function delIngreso(id: string) {
+    setIngresos(prev => prev.filter(i => i.id !== id));
+    await supabase.from("ingresos").delete().eq("id", id);
+  }
+
+  // ── GASTOS FIJOS ──
   async function toggleFijo(id: string, pagado: boolean) {
     setFijos(prev => prev.map(g => g.id === id ? { ...g, pagado: !pagado } : g));
     await supabase.from("gastos_fijos").update({ pagado: !pagado }).eq("id", id);
@@ -80,12 +124,8 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
     if (!nFijo.nombre.trim() || isNaN(monto)) return;
     setSaving(true);
     const { data } = await supabase.from("gastos_fijos").insert({
-      user_id: userId,
-      nombre: nFijo.nombre,
-      categoria: nFijo.categoria,
-      monto,
-      pagado: false,
-      quincena,
+      user_id: userId, nombre: nFijo.nombre, categoria: nFijo.categoria,
+      monto, pagado: false, periodo,
     }).select().single();
     if (data) setFijos(prev => [...prev, data]);
     setNFijo({ nombre: "", categoria: "Casa", monto: "" });
@@ -93,18 +133,14 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
     setSaving(false);
   }
 
-  // ── HANDLERS VARIABLES ──
+  // ── GASTOS VARIABLES ──
   async function addVar() {
     const monto = parseFloat(nVar.monto);
     if (!nVar.descripcion.trim() || isNaN(monto) || monto <= 0) return;
     setSaving(true);
     const { data } = await supabase.from("gastos_variables").insert({
-      user_id: userId,
-      descripcion: nVar.descripcion,
-      categoria: nVar.categoria,
-      monto,
-      fecha: new Date().toISOString().split("T")[0],
-      quincena,
+      user_id: userId, descripcion: nVar.descripcion, categoria: nVar.categoria,
+      monto, fecha: new Date().toISOString().split("T")[0], periodo,
     }).select().single();
     if (data) setVars(prev => [data, ...prev]);
     setNVar({ descripcion: "", categoria: "Otro", monto: "" });
@@ -122,7 +158,7 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
     await supabase.from("gastos_variables").delete().eq("id", id);
   }
 
-  // ── HELPERS DEUDAS ──
+  // ── DEUDAS ──
   const pagadoPor = useCallback((deudaId: string) =>
     abonos.filter(a => a.deuda_id === deudaId).reduce((s, a) => s + a.monto, 0), [abonos]);
 
@@ -187,54 +223,109 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
     window.location.href = "/auth";
   }
 
-  // ── ESTILOS BASE ──
+  // ── ESTILOS ──
   const inputCls = "bg-[#1a1730] border border-[#2a2440] rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-brand-purple transition-colors w-full";
-  const cats = [...new Set(fijos.map(g => g.categoria))];
 
   return (
     <div className="min-h-screen bg-brand-bg text-white font-sans pb-16">
+
+      {/* ══ MODAL INGRESO ══ */}
+      {modalIngreso && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.7)" }}
+          onClick={e => { if (e.target === e.currentTarget) setModalIngreso(false); }}>
+          <div className="bg-brand-card border border-brand-border rounded-2xl p-6 w-full max-w-sm">
+            <p className="text-sm font-bold text-brand-green mb-4">Registrar ingreso</p>
+            <div className="flex flex-col gap-3">
+              <input type="number" value={nIngreso.monto}
+                onChange={e => setNIngreso(p => ({ ...p, monto: e.target.value }))}
+                placeholder="Monto" className={`${inputCls} text-right font-mono text-lg`}
+                autoFocus onKeyDown={e => e.key === "Enter" && addIngreso()} />
+              <input value={nIngreso.descripcion}
+                onChange={e => setNIngreso(p => ({ ...p, descripcion: e.target.value }))}
+                placeholder="Descripción (ej: Pago quincenal)" className={inputCls}
+                onKeyDown={e => e.key === "Enter" && addIngreso()} />
+              <div className="flex gap-2">
+                <button onClick={addIngreso} disabled={saving || !nIngreso.monto}
+                  className="flex-1 bg-brand-green text-brand-bg font-bold py-3 rounded-xl text-sm disabled:opacity-50">
+                  {saving ? "Guardando…" : "Guardar ingreso"}
+                </button>
+                <button onClick={() => setModalIngreso(false)}
+                  className="px-4 py-3 rounded-xl bg-[#1e1b2e] text-brand-muted text-sm">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+            {/* Lista de ingresos del periodo */}
+            {ingresos.length > 0 && (
+              <div className="mt-4 border-t border-brand-border pt-4">
+                <p className="text-[10px] text-brand-muted uppercase tracking-wider mb-2">Ingresos de {getPeriodoLabel(periodo)}</p>
+                {ingresos.map(i => (
+                  <div key={i.id} className="flex items-center justify-between py-1.5">
+                    <div>
+                      <p className="text-xs font-semibold text-brand-green font-mono">+ {fmtCOP(i.monto)}</p>
+                      <p className="text-[10px] text-brand-muted">{i.descripcion}</p>
+                    </div>
+                    <button onClick={() => delIngreso(i.id)}
+                      className="text-[#2a2440] hover:text-brand-red text-lg leading-none ml-3">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ══ HEADER ══ */}
       <div className="sticky top-0 z-10 border-b border-brand-border px-4 py-4"
         style={{ background: "linear-gradient(160deg,#13101f,#1a0f2e)" }}>
         <div className="max-w-xl mx-auto">
 
-          <div className="flex justify-between items-start gap-3 mb-3">
-            <div>
-              <p className="text-[10px] text-brand-purple uppercase tracking-widest mb-0.5">Dashboard · COP</p>
-              <h1 className="text-base font-extrabold tracking-tight leading-tight">{getQuincenaLabel()}</h1>
-              <p className="text-[11px] text-brand-muted mt-0.5">Mensual estimado: {fmtCOP(ingreso * 2)}</p>
+          {/* Fila 1: navegación de periodo + logout */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <button onClick={() => cambiarPeriodo(prevPeriodo(periodo))}
+                className="w-7 h-7 rounded-lg bg-[#1a1730] text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">‹</button>
+              <div>
+                <p className="text-[10px] text-brand-purple uppercase tracking-widest">Dashboard · COP</p>
+                <h1 className="text-base font-extrabold tracking-tight">{getPeriodoLabel(periodo)}</h1>
+              </div>
+              <button onClick={() => cambiarPeriodo(nextPeriodo(periodo))}
+                className="w-7 h-7 rounded-lg bg-[#1a1730] text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">›</button>
             </div>
-            <div className="text-right flex flex-col items-end gap-1">
-              <p className="text-[10px] text-brand-muted uppercase tracking-wider">Ingreso quincenal</p>
-              <Editable
-                value={ingreso} tipo="number"
-                onSave={v => actualizarIngreso(v as number)}
-                className="text-lg font-extrabold text-brand-green font-mono"
-              />
+            <div className="flex items-center gap-2">
+              <button onClick={() => setModalIngreso(true)}
+                className="bg-brand-green text-brand-bg font-bold px-3 py-1.5 rounded-xl text-xs hover:opacity-90 transition-opacity">
+                + Ingreso
+              </button>
+              <button onClick={() => cambiarPeriodo(nextPeriodo(periodo))}
+                className="bg-[#1a1730] text-brand-muted font-semibold px-3 py-1.5 rounded-xl text-xs hover:text-white transition-colors">
+                Nuevo mes →
+              </button>
               <button onClick={logout} className="text-[10px] text-brand-muted hover:text-brand-red transition-colors">
-                Cerrar sesión
+                Salir
               </button>
             </div>
           </div>
 
-          {/* Barra disponible */}
+          {/* Barra de gasto vs ingresos */}
           <div className="mb-3">
             <div className="flex justify-between text-[11px] mb-1">
-              <span className="text-brand-muted">Gastado de la quincena</span>
+              <span className="text-brand-muted">Gastado del mes</span>
               <span className={`font-bold ${pct >= 90 ? "text-brand-red" : pct >= 70 ? "text-brand-yellow" : "text-brand-green"}`}>
-                {pct.toFixed(1)}%
+                {totalIngresos > 0 ? `${pct.toFixed(1)}%` : "Sin ingresos"}
               </span>
             </div>
-            <Bar val={gastadoTotal} total={ingreso} color="#a78bfa" />
+            <Bar val={gastado} total={Math.max(totalIngresos, 1)} color="#a78bfa" />
           </div>
 
           {/* Stats x3 */}
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: "Gastado",      val: gastadoTotal, color: "text-brand-red",    sub: `${fijos.filter(g=>g.pagado).length} fijos + ${vars.length} var` },
-              { label: "Comprometido", val: totalFijosMes, color: "text-brand-yellow", sub: "total fijos" },
-              { label: "Disponible",   val: disponible,   color: disponible >= 0 ? "text-brand-purple" : "text-brand-red", sub: disponible < 0 ? "⚠️ déficit" : "libre ahora" },
+              { label: "Ingresos",   val: totalIngresos, color: "text-brand-green",  sub: `${ingresos.length} registros` },
+              { label: "Gastado",    val: gastado,        color: "text-brand-red",    sub: `${fijos.filter(g=>g.pagado).length} fijos + ${vars.length} var` },
+              { label: "Disponible", val: disponible,     color: disponible >= 0 ? "text-brand-purple" : "text-brand-red",
+                sub: disponible < 0 ? "⚠️ déficit" : "libre" },
             ].map((s, i) => (
               <div key={i} className="flex flex-col gap-0.5">
                 <span className="text-[9px] text-brand-muted uppercase tracking-wider">{s.label}</span>
@@ -250,38 +341,33 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
       <div className="max-w-xl mx-auto px-4 pt-4">
         <div className="grid grid-cols-4 gap-1.5 mb-4">
           {([["fijos","💳 Fijos"],["variables","🛒 Variables"],["deudas","💸 Deudas"],["resumen","📊 Resumen"]] as const).map(([k,l]) => (
-            <button key={k} onClick={() => setTab(k as any)}
+            <button key={k} onClick={() => setTab(k)}
               className={`py-2 rounded-xl text-[11px] font-bold transition-all ${
                 tab === k
                   ? "bg-brand-purple text-brand-bg shadow-lg shadow-brand-purple/30"
                   : "bg-brand-card text-brand-muted"
-              }`}>
-              {l}
-            </button>
+              }`}>{l}</button>
           ))}
         </div>
 
         {/* ════ TAB: FIJOS ════ */}
         {tab === "fijos" && (
           <div className="flex flex-col gap-3">
-
-            {/* Progreso fijos */}
             <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
               <div className="flex justify-between text-xs mb-2">
                 <span className="text-[#94a3b8]">Fijos pagados</span>
                 <span className="font-mono text-brand-green">{fijos.filter(g=>g.pagado).length}/{fijos.length}</span>
               </div>
-              <Bar val={gastadoFijos} total={totalFijosMes} color="#4ade80" />
+              <Bar val={gastadoFijos} total={totalFijos} color="#4ade80" />
               <div className="flex justify-between mt-2 text-[11px] text-brand-muted">
                 <span>Pagado: <b className="text-brand-green">{fmtCOP(gastadoFijos)}</b></span>
-                <span>Pendiente: <b className="text-brand-red">{fmtCOP(totalFijosMes - gastadoFijos)}</b></span>
+                <span>Pendiente: <b className="text-brand-red">{fmtCOP(totalFijos - gastadoFijos)}</b></span>
               </div>
-              <p className="text-[11px] text-brand-muted mt-2 leading-relaxed">
-                ✏️ Toca nombre, categoría o monto para editar. El disponible se actualiza al instante.
+              <p className="text-[11px] text-brand-muted mt-2">
+                ✏️ Toca nombre, categoría o monto para editar.
               </p>
             </div>
 
-            {/* Lista por categoría */}
             {cats.map(cat => (
               <div key={cat}>
                 <div className="flex items-center gap-2 mt-1 mb-1">
@@ -291,22 +377,17 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
                     {fmtCOP(fijos.filter(g=>g.categoria===cat).reduce((s,g)=>s+g.monto,0))}
                   </span>
                 </div>
-
                 {fijos.filter(g => g.categoria === cat).map(g => (
                   <div key={g.id}
                     className={`bg-brand-card border rounded-2xl p-3.5 mb-2 flex items-center gap-3 transition-all ${
                       g.pagado ? "opacity-50 border-brand-border" : "border-[#2a2440]"
                     }`}>
-
-                    {/* Checkbox */}
                     <button onClick={() => toggleFijo(g.id, g.pagado)}
                       className={`w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center border-2 transition-all ${
                         g.pagado ? "bg-brand-green border-brand-green" : "border-[#2a2440] bg-transparent"
                       }`}>
                       {g.pagado && <span className="text-brand-bg text-xs font-black">✓</span>}
                     </button>
-
-                    {/* Nombre + categoría */}
                     <div className="flex-1 min-w-0">
                       <Editable value={g.nombre} tipo="text"
                         onSave={v => editFijo(g.id, "nombre", v)}
@@ -314,15 +395,11 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
                       <Editable value={g.categoria} tipo="select" opciones={CATS_FIJOS}
                         onSave={v => editFijo(g.id, "categoria", v)}
                         className="text-[10px] mt-0.5 block"
-                        style={{ color: COLOR_CAT[g.categoria] ?? "#64748b" } as any} />
+                        style={{ color: COLOR_CAT[g.categoria] ?? "#64748b" }} />
                     </div>
-
-                    {/* Monto */}
                     <Editable value={g.monto} tipo="number"
                       onSave={v => editFijo(g.id, "monto", v as number)}
                       className="text-sm font-bold font-mono text-white" />
-
-                    {/* Eliminar */}
                     <button onClick={() => delFijo(g.id)}
                       className="text-[#2a2440] hover:text-brand-red text-lg leading-none transition-colors ml-1">×</button>
                   </div>
@@ -330,7 +407,6 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
               </div>
             ))}
 
-            {/* Form nuevo fijo */}
             {formFijo ? (
               <div className="bg-brand-card border border-brand-purple/30 rounded-2xl p-4">
                 <p className="text-xs text-brand-purple font-bold mb-3">Nuevo gasto fijo</p>
@@ -370,14 +446,12 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
         {/* ════ TAB: VARIABLES ════ */}
         {tab === "variables" && (
           <div className="flex flex-col gap-3">
-
-            {/* Disponible destacado */}
             <div className={`bg-brand-card border rounded-2xl p-4 ${disponible >= 0 ? "border-brand-purple/30" : "border-brand-red/30"}`}
               style={{ background: disponible >= 0 ? "#110e1f" : "#1a0d0d" }}>
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-[10px] text-brand-muted uppercase tracking-wider">Disponible ahora</p>
-                  <p className="text-[11px] text-brand-muted mt-0.5">Ingreso − fijos pagados − variables</p>
+                  <p className="text-[11px] text-brand-muted mt-0.5">Ingresos − fijos pagados − variables</p>
                 </div>
                 <span className={`text-2xl font-extrabold font-mono ${disponible >= 0 ? "text-brand-purple" : "text-brand-red"}`}>
                   {fmtCOP(disponible)}
@@ -385,19 +459,17 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
               </div>
             </div>
 
-            {/* Resumen variables */}
             <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs text-[#94a3b8]">Total variables</span>
                 <span className="text-lg font-extrabold font-mono text-brand-yellow">{fmtCOP(totalVars)}</span>
               </div>
-              <Bar val={totalVars} total={ingreso * 0.20} color="#fbbf24" />
+              <Bar val={totalVars} total={Math.max(totalIngresos * 0.20, 1)} color="#fbbf24" />
               <p className="text-[11px] text-brand-muted mt-1.5">
-                Referencia 20%: {fmtCOP(ingreso * 0.20)} · {vars.length} gastos
+                Ref. 20% ingresos: {fmtCOP(totalIngresos * 0.20)} · {vars.length} gastos
               </p>
             </div>
 
-            {/* Form nuevo variable */}
             {formVar ? (
               <div className="bg-brand-card border border-brand-yellow/30 rounded-2xl p-4">
                 <p className="text-xs text-brand-yellow font-bold mb-3">Registrar gasto</p>
@@ -433,10 +505,9 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
               </button>
             )}
 
-            {/* Lista variables */}
             {vars.length === 0 ? (
               <div className="bg-brand-card border border-brand-border rounded-2xl p-8 text-center text-brand-muted text-sm">
-                Sin gastos registrados esta quincena 🎉
+                Sin gastos registrados este mes 🎉
               </div>
             ) : vars.map(g => (
               <div key={g.id} className="bg-brand-card border border-brand-border rounded-2xl p-3.5 flex items-center gap-3">
@@ -449,7 +520,7 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
                     <Editable value={g.categoria} tipo="select" opciones={CATS_VARIABLES}
                       onSave={v => editVar(g.id, "categoria", v)}
                       className="text-[10px]"
-                      style={{ color: COLOR_CAT[g.categoria] ?? "#64748b" } as any} />
+                      style={{ color: COLOR_CAT[g.categoria] ?? "#64748b" }} />
                     <span className="text-[10px] text-brand-muted">
                       {new Date(g.fecha + "T00:00:00").toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
                     </span>
@@ -473,15 +544,13 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
 
           return (
             <div className="flex flex-col gap-3">
-
-              {/* Resumen global */}
               <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
                 <p className="text-[10px] text-brand-purple font-bold uppercase tracking-widest mb-3">Resumen de deudas</p>
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {[
-                    { label: "Total deuda",   val: totalDeuda,    color: "text-brand-red" },
-                    { label: "Pagado",         val: totalPagado,   color: "text-brand-green" },
-                    { label: "Pendiente",      val: totalPendiente, color: "text-brand-yellow" },
+                    { label: "Total deuda",  val: totalDeuda,    color: "text-brand-red" },
+                    { label: "Pagado",        val: totalPagado,   color: "text-brand-green" },
+                    { label: "Pendiente",     val: totalPendiente, color: "text-brand-yellow" },
                   ].map((s, i) => (
                     <div key={i} className="flex flex-col gap-0.5">
                       <span className="text-[9px] text-brand-muted uppercase tracking-wider">{s.label}</span>
@@ -489,12 +558,9 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
                     </div>
                   ))}
                 </div>
-                {totalDeuda > 0 && (
-                  <Bar val={totalPagado} total={totalDeuda} color="#4ade80" />
-                )}
+                {totalDeuda > 0 && <Bar val={totalPagado} total={totalDeuda} color="#4ade80" />}
               </div>
 
-              {/* Lista de deudas */}
               {deudas.map(d => {
                 const pagado    = pagadoPor(d.id);
                 const pendiente = d.monto_total - pagado;
@@ -504,7 +570,6 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
 
                 return (
                   <div key={d.id} className={`bg-brand-card border rounded-2xl overflow-hidden transition-all ${saldada ? "border-brand-green/40" : "border-brand-border"}`}>
-                    {/* Cabecera deuda */}
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex-1 min-w-0">
@@ -532,22 +597,18 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
 
                       <Bar val={pagado} total={d.monto_total} color={saldada ? "#4ade80" : "#a78bfa"} />
 
-                      {/* Acciones */}
                       <div className="flex gap-2 mt-3">
                         {!saldada && (
-                          <button
-                            onClick={() => { setAbonoAbierto(abonoAbierto === d.id ? null : d.id); setAumentoAbierto(null); setNAbono({ monto: "", nota: "" }); }}
+                          <button onClick={() => { setAbonoAbierto(abonoAbierto === d.id ? null : d.id); setAumentoAbierto(null); setNAbono({ monto: "", nota: "" }); }}
                             className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${abonoAbierto === d.id ? "bg-brand-purple text-brand-bg" : "bg-brand-purple/20 text-brand-purple hover:bg-brand-purple/30"}`}>
                             + Abonar
                           </button>
                         )}
-                        <button
-                          onClick={() => { setAumentoAbierto(aumentoAbierto === d.id ? null : d.id); setAbonoAbierto(null); setNAumento({ monto: "", nota: "" }); }}
+                        <button onClick={() => { setAumentoAbierto(aumentoAbierto === d.id ? null : d.id); setAbonoAbierto(null); setNAumento({ monto: "", nota: "" }); }}
                           className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${aumentoAbierto === d.id ? "bg-brand-yellow text-brand-bg" : "bg-brand-yellow/20 text-brand-yellow hover:bg-brand-yellow/30"}`}>
                           ↑ Aumentar
                         </button>
-                        <button
-                          onClick={() => setExpandida(expandida === d.id ? null : d.id)}
+                        <button onClick={() => setExpandida(expandida === d.id ? null : d.id)}
                           className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#1a1730] text-brand-muted hover:text-white transition-colors">
                           {expandida === d.id ? "Ocultar" : `Abonos (${misAbonos.length})`}
                         </button>
@@ -555,7 +616,6 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
                           className="px-3 py-2 rounded-xl text-brand-muted hover:text-brand-red transition-colors text-lg leading-none">×</button>
                       </div>
 
-                      {/* Form aumentar deuda */}
                       {aumentoAbierto === d.id && (
                         <div className="mt-3 p-3 bg-[#1a1730] rounded-xl border border-brand-yellow/20">
                           <p className="text-[10px] text-brand-yellow font-bold mb-2">Aumentar deuda</p>
@@ -575,14 +635,11 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
                               {saving ? "Guardando…" : "Confirmar aumento"}
                             </button>
                             <button onClick={() => setAumentoAbierto(null)}
-                              className="px-4 py-2 rounded-xl bg-[#13101f] text-brand-muted text-xs">
-                              Cancelar
-                            </button>
+                              className="px-4 py-2 rounded-xl bg-[#13101f] text-brand-muted text-xs">Cancelar</button>
                           </div>
                         </div>
                       )}
 
-                      {/* Form abono */}
                       {abonoAbierto === d.id && (
                         <div className="mt-3 p-3 bg-[#1a1730] rounded-xl border border-brand-purple/20">
                           <p className="text-[10px] text-brand-purple font-bold mb-2">Registrar abono</p>
@@ -602,15 +659,12 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
                               {saving ? "Guardando…" : "Guardar abono"}
                             </button>
                             <button onClick={() => setAbonoAbierto(null)}
-                              className="px-4 py-2 rounded-xl bg-[#13101f] text-brand-muted text-xs">
-                              Cancelar
-                            </button>
+                              className="px-4 py-2 rounded-xl bg-[#13101f] text-brand-muted text-xs">Cancelar</button>
                           </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Historial abonos */}
                     {expandida === d.id && (
                       <div className="border-t border-brand-border">
                         {misAbonos.length === 0 ? (
@@ -634,7 +688,6 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
                 );
               })}
 
-              {/* Form nueva deuda */}
               {formDeuda ? (
                 <div className="bg-brand-card border border-brand-red/30 rounded-2xl p-4">
                   <p className="text-xs text-brand-red font-bold mb-3">Nueva deuda</p>
@@ -651,9 +704,7 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
                         {saving ? "Guardando…" : "Agregar deuda"}
                       </button>
                       <button onClick={() => setFormDeuda(false)}
-                        className="bg-[#1e1b2e] text-brand-muted font-semibold px-4 py-2.5 rounded-xl text-sm">
-                        Cancelar
-                      </button>
+                        className="bg-[#1e1b2e] text-brand-muted font-semibold px-4 py-2.5 rounded-xl text-sm">Cancelar</button>
                     </div>
                   </div>
                 </div>
@@ -670,16 +721,14 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
         {/* ════ TAB: RESUMEN ════ */}
         {tab === "resumen" && (
           <div className="flex flex-col gap-3">
-
-            {/* Flujo */}
             <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
-              <p className="text-[10px] text-brand-purple font-bold uppercase tracking-widest mb-3">Flujo quincenal</p>
+              <p className="text-[10px] text-brand-purple font-bold uppercase tracking-widest mb-3">Flujo de {getPeriodoLabel(periodo)}</p>
               {[
-                { label: "Ingreso quincenal",  val: ingreso,                    color: "text-brand-green",  signo: "+" },
-                { label: "Fijos pagados",       val: gastadoFijos,               color: "text-brand-red",    signo: "−" },
-                { label: "Gastos variables",    val: totalVars,                  color: "text-brand-yellow", signo: "−" },
-                { label: "Fijos pendientes",    val: totalFijosMes-gastadoFijos, color: "text-[#94a3b8]",    signo: "(−)", dim: true },
-                { label: "Disponible real",     val: disponible,                 color: disponible>=0?"text-brand-purple":"text-brand-red", signo: "=", bold: true },
+                { label: "Total ingresos",   val: totalIngresos,             color: "text-brand-green",  signo: "+" },
+                { label: "Fijos pagados",     val: gastadoFijos,              color: "text-brand-red",    signo: "−" },
+                { label: "Gastos variables",  val: totalVars,                 color: "text-brand-yellow", signo: "−" },
+                { label: "Fijos pendientes",  val: totalFijos - gastadoFijos, color: "text-[#94a3b8]",    signo: "(−)", dim: true },
+                { label: "Disponible real",   val: disponible,                color: disponible>=0?"text-brand-purple":"text-brand-red", signo: "=", bold: true },
               ].map((r, i) => (
                 <div key={i} className={`flex justify-between items-center py-2.5 ${i<4?"border-b border-brand-border":""} ${r.dim?"opacity-40":""}`}>
                   <span className={`text-sm text-[#94a3b8] ${r.bold?"font-bold":""} ${r.dim?"italic":""}`}>{r.label}</span>
@@ -688,7 +737,6 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
               ))}
             </div>
 
-            {/* Por categoría */}
             <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
               <p className="text-[10px] text-brand-purple font-bold uppercase tracking-widest mb-3">Lo que ya salió</p>
               {(() => {
@@ -712,18 +760,17 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
               })()}
             </div>
 
-            {/* Diagnóstico */}
             <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
               <p className="text-[10px] text-brand-purple font-bold uppercase tracking-widest mb-3">Diagnóstico</p>
               {[
                 { ok: disponible >= 0, label: "Dentro del presupuesto",
                   msg: disponible >= 0 ? `Te quedan ${fmtCOP(disponible)}` : `Déficit ${fmtCOP(Math.abs(disponible))}` },
-                { ok: totalVars <= ingreso*0.20, label: "Variables ≤ 20%",
-                  msg: `${fmtCOP(totalVars)} de ${fmtCOP(ingreso*0.20)}` },
-                { ok: fijos.filter(g=>g.pagado).length === fijos.length, label: "Todos los fijos pagados",
+                { ok: totalVars <= totalIngresos * 0.20, label: "Variables ≤ 20% ingresos",
+                  msg: `${fmtCOP(totalVars)} de ${fmtCOP(totalIngresos * 0.20)}` },
+                { ok: fijos.filter(g=>g.pagado).length === fijos.length && fijos.length > 0, label: "Todos los fijos pagados",
                   msg: `${fijos.filter(g=>g.pagado).length}/${fijos.length} marcados` },
-                { ok: ingreso >= totalFijosMes, label: "Ingreso cubre todos los fijos",
-                  msg: ingreso >= totalFijosMes ? `Sobran ${fmtCOP(ingreso-totalFijosMes)}` : `Déficit estructural ${fmtCOP(totalFijosMes-ingreso)}` },
+                { ok: totalIngresos >= totalFijos, label: "Ingresos cubren todos los fijos",
+                  msg: totalIngresos >= totalFijos ? `Sobran ${fmtCOP(totalIngresos-totalFijos)}` : `Déficit ${fmtCOP(totalFijos-totalIngresos)}` },
               ].map((item, i) => (
                 <div key={i} className={`flex justify-between items-center py-2.5 ${i<3?"border-b border-brand-border":""}`}>
                   <div className="flex items-center gap-2.5">

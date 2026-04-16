@@ -6,21 +6,36 @@ export function fmtCOP(n: number): string {
   return "$" + Math.round(n).toLocaleString("es-CO");
 }
 
-// Devuelve la clave de quincena actual: "2024-04-Q1" o "2024-04-Q2"
-export function getQuincenaKey(): string {
+// Devuelve el periodo actual como "2026-04"
+export function getPeriodo(): string {
   const d = new Date();
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
-  const q = d.getDate() <= 15 ? "Q1" : "Q2";
-  return `${year}-${month}-${q}`;
+  return `${year}-${month}`;
 }
 
-// Etiqueta legible: "Quincena del 1 al 15 de Abril 2024"
-export function getQuincenaLabel(): string {
-  const d = new Date();
-  const mes = d.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
-  const q = d.getDate() <= 15 ? "1 al 15" : "16 al fin";
-  return `Quincena del ${q} de ${mes.charAt(0).toUpperCase() + mes.slice(1)}`;
+// Etiqueta legible: "Abril 2026"
+export function getPeriodoLabel(periodo: string): string {
+  const [y, m] = periodo.split("-").map(Number);
+  const d = new Date(y, m - 1, 1);
+  const mes = d.toLocaleDateString("es-CO", { month: "long" });
+  return `${mes.charAt(0).toUpperCase() + mes.slice(1)} ${y}`;
+}
+
+// Avanza al periodo siguiente: "2026-04" → "2026-05"
+export function nextPeriodo(p: string): string {
+  const [y, m] = p.split("-").map(Number);
+  const nm = m === 12 ? 1 : m + 1;
+  const ny = m === 12 ? y + 1 : y;
+  return `${ny}-${String(nm).padStart(2, "0")}`;
+}
+
+// Retrocede al periodo anterior: "2026-04" → "2026-03"
+export function prevPeriodo(p: string): string {
+  const [y, m] = p.split("-").map(Number);
+  const pm = m === 1 ? 12 : m - 1;
+  const py = m === 1 ? y - 1 : y;
+  return `${py}-${String(pm).padStart(2, "0")}`;
 }
 
 // Colores por categoría
