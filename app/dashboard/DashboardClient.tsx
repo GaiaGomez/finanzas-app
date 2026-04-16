@@ -38,8 +38,10 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
   const [nFijo, setNFijo]   = useState({ nombre: "", categoria: "Casa", monto: "" });
   const [nVar, setNVar]     = useState({ descripcion: "", categoria: "Otro", monto: "" });
   const [nDeuda, setNDeuda] = useState({ nombre: "", monto_total: "" });
-  const [abonoAbierto, setAbonoAbierto]   = useState<string | null>(null);
-  const [nAbono, setNAbono] = useState({ monto: "", nota: "" });
+  const [abonoAbierto, setAbonoAbierto]     = useState<string | null>(null);
+  const [aumentoAbierto, setAumentoAbierto] = useState<string | null>(null);
+  const [nAbono, setNAbono]   = useState({ monto: "", nota: "" });
+  const [nAumento, setNAumento] = useState({ monto: "", nota: "" });
   const [expandida, setExpandida] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -166,6 +168,18 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
   async function delAbono(id: string) {
     setAbonos(prev => prev.filter(a => a.id !== id));
     await supabase.from("abonos").delete().eq("id", id);
+  }
+
+  async function addAumento(deuda: Deuda) {
+    const monto = parseFloat(nAumento.monto);
+    if (isNaN(monto) || monto <= 0) return;
+    const nuevoTotal = deuda.monto_total + monto;
+    setSaving(true);
+    setDeudas(prev => prev.map(d => d.id === deuda.id ? { ...d, monto_total: nuevoTotal } : d));
+    await supabase.from("deudas").update({ monto_total: nuevoTotal }).eq("id", deuda.id);
+    setNAumento({ monto: "", nota: "" });
+    setAumentoAbierto(null);
+    setSaving(false);
   }
 
   async function logout() {
@@ -522,19 +536,51 @@ export default function DashboardClient({ userId, perfil, fijosIniciales, variab
                       <div className="flex gap-2 mt-3">
                         {!saldada && (
                           <button
-                            onClick={() => { setAbonoAbierto(abonoAbierto === d.id ? null : d.id); setNAbono({ monto: "", nota: "" }); }}
-                            className="flex-1 py-2 rounded-xl text-xs font-bold bg-brand-purple/20 text-brand-purple hover:bg-brand-purple/30 transition-colors">
+                            onClick={() => { setAbonoAbierto(abonoAbierto === d.id ? null : d.id); setAumentoAbierto(null); setNAbono({ monto: "", nota: "" }); }}
+                            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${abonoAbierto === d.id ? "bg-brand-purple text-brand-bg" : "bg-brand-purple/20 text-brand-purple hover:bg-brand-purple/30"}`}>
                             + Abonar
                           </button>
                         )}
                         <button
+                          onClick={() => { setAumentoAbierto(aumentoAbierto === d.id ? null : d.id); setAbonoAbierto(null); setNAumento({ monto: "", nota: "" }); }}
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${aumentoAbierto === d.id ? "bg-brand-yellow text-brand-bg" : "bg-brand-yellow/20 text-brand-yellow hover:bg-brand-yellow/30"}`}>
+                          ↑ Aumentar
+                        </button>
+                        <button
                           onClick={() => setExpandida(expandida === d.id ? null : d.id)}
                           className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#1a1730] text-brand-muted hover:text-white transition-colors">
-                          {expandida === d.id ? "Ocultar" : `Ver abonos (${misAbonos.length})`}
+                          {expandida === d.id ? "Ocultar" : `Abonos (${misAbonos.length})`}
                         </button>
                         <button onClick={() => delDeuda(d.id)}
                           className="px-3 py-2 rounded-xl text-brand-muted hover:text-brand-red transition-colors text-lg leading-none">×</button>
                       </div>
+
+                      {/* Form aumentar deuda */}
+                      {aumentoAbierto === d.id && (
+                        <div className="mt-3 p-3 bg-[#1a1730] rounded-xl border border-brand-yellow/20">
+                          <p className="text-[10px] text-brand-yellow font-bold mb-2">Aumentar deuda</p>
+                          <div className="flex gap-2 mb-2">
+                            <input type="number" value={nAumento.monto}
+                              onChange={e => setNAumento(p => ({ ...p, monto: e.target.value }))}
+                              placeholder="Monto a agregar" className={`${inputCls} flex-1 text-right font-mono`}
+                              onKeyDown={e => e.key === "Enter" && addAumento(d)} />
+                            <input value={nAumento.nota}
+                              onChange={e => setNAumento(p => ({ ...p, nota: e.target.value }))}
+                              placeholder="Motivo (opcional)" className={`${inputCls} flex-1`}
+                              onKeyDown={e => e.key === "Enter" && addAumento(d)} />
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => addAumento(d)} disabled={saving || !nAumento.monto}
+                              className="flex-1 bg-brand-yellow text-brand-bg font-bold py-2 rounded-xl text-xs disabled:opacity-50">
+                              {saving ? "Guardando…" : "Confirmar aumento"}
+                            </button>
+                            <button onClick={() => setAumentoAbierto(null)}
+                              className="px-4 py-2 rounded-xl bg-[#13101f] text-brand-muted text-xs">
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Form abono */}
                       {abonoAbierto === d.id && (
