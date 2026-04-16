@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+/* Scrollbar oscura para que no rompa el diseño */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0f0d1a; }
+::-webkit-scrollbar-thumb { background: #2a2440; border-radius: 99px; }

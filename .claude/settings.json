@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s https://vtewjvnmnsqnwkzmrvoi.supabase.co/auth/v1/settings -H 'apikey: sb_publishable_6tRcvoOca2miyDYBz-BdDw_zNEJbWUc')",
+      "Bash(curl -s -X POST https://vtewjvnmnsqnwkzmrvoi.supabase.co/auth/v1/signup -H 'apikey: sb_publishable_6tRcvoOca2miyDYBz-BdDw_zNEJbWUc' -H 'Content-Type: application/json' -d '{\"email\":\"test_diagnostico@example.com\",\"password\":\"test1234\"}')"
+    ]
+  }
+}
