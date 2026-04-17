@@ -1,13 +1,13 @@
 // lib/env.ts — variables de entorno validadas
-// Lanza un error descriptivo en arranque si falta alguna variable crítica
+// Usa dot-notation estática para que Next.js pueda inlinear NEXT_PUBLIC_* en el bundle del cliente
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Variable de entorno faltante: ${name}`);
-  return value;
-}
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!url) throw new Error("Variable de entorno faltante: NEXT_PUBLIC_SUPABASE_URL");
+if (!key) throw new Error("Variable de entorno faltante: NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
 export const env = {
-  supabaseUrl:  requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-  supabaseKey:  requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+  supabaseUrl: url,
+  supabaseKey: key,
 };
