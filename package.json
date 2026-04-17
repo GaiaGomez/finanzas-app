@@ -2,6 +2,7 @@
   "name": "fynt",
   "version": "0.1.0",
   "private": true,
+  "description": "Personal finance dashboard built with Next.js, Supabase, TypeScript and Tailwind CSS",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -1,69 +1,45 @@
-# Fynt
+# Fynt — Tu dinero, bajo control
 
-Dashboard financiero personal con login, offline (PWA) y multi-usuario.
+> Full-stack personal finance web application built with Next.js, Supabase, and TypeScript.
 
-## Stack
-- **Next.js 14** + TypeScript
-- **Tailwind CSS**
-- **Supabase** (DB + Auth)
-- **next-pwa** (offline)
-- **Vercel** (deploy)
+[Live Demo](https://fyntt.vercel.app) · [Report Bug](https://github.com/GaiaGomez/Fynt_Tu_Dinero_Bajo_Control/issues)
 
-## Setup paso a paso
+## Preview
+![Dashboard preview](./docs/preview.png)
 
-### 1. Clonar e instalar
-```bash
-git clone <tu-repo>
-cd finanzas-app
-npm install
-```
+## Features
+- Monthly budget tracking with fixed and variable expense categories
+- Debt payoff tracker with payment history and progress visualization
+- Financial summary with real-time cash flow breakdown
+- Auto-copy fixed expenses when creating new months
+- Google OAuth and Magic Link authentication via Supabase
+- Installable as PWA on mobile devices
+- Dark theme UI with custom design system
 
-### 2. Variables de entorno
-Copia `.env.example` a `.env.local` y llena tus claves de Supabase:
-```
-NEXT_PUBLIC_SUPABASE_URL=https://TU_PROJECT_ID.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...TU_ANON_KEY
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+## Tech Stack
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript (zero `any`) |
+| Database & Auth | Supabase (PostgreSQL + RLS + SSR Auth) |
+| Styling | Tailwind CSS + custom design tokens |
+| Deploy | Vercel |
+| PWA | next-pwa |
 
-### 3. Base de datos
-Ve a **Supabase → SQL Editor** y corre todo el contenido de `supabase/schema.sql`
+## Architecture Highlights
+- Server Components for initial data loading (zero client-side waterfalls)
+- Row Level Security on all Supabase tables
+- Edge middleware for route protection
+- Modular component structure with custom hooks
 
-### 4. Auth con Google (opcional)
-Ve a **Supabase → Authentication → Providers → Google**
-Necesitas un Client ID y Secret de Google Cloud Console.
+## Getting Started
+1. Clone the repo
+2. `npm install`
+3. Copy `.env.example` to `.env.local` and fill in your Supabase credentials
+4. `npm run dev`
 
-### 5. Correr en local
-```bash
-npm run dev
-```
-Abre http://localhost:3000
+## Environment Variables
+See `.env.example` for required variables.
 
-### 6. Deploy en Vercel
-```bash
-# Conecta tu repo de GitHub a Vercel
-# En Vercel → Settings → Environment Variables agrega las mismas del .env.local
-# Cambia NEXT_PUBLIC_APP_URL a tu URL de Vercel
-```
-
-En Supabase → Authentication → URL Configuration agrega:
-- Site URL: `https://fyntt.vercel.app`
-- Redirect URLs: `https://fyntt.vercel.app/api/auth/callback`
-
-## Estructura
-```
-app/
-  auth/          → Login page
-  dashboard/     → Dashboard (Server + Client)
-  api/auth/      → Callback de OAuth
-components/
-  ui/            → Bar, Dot, Editable
-lib/
-  supabase.ts    → Cliente browser
-  supabase-server.ts → Cliente servidor
-  utils.ts       → fmtCOP, colores, quincena
-types/           → TypeScript types
-supabase/
-  schema.sql     → Tablas + RLS + trigger
-middleware.ts    → Protección de rutas
-```
+## Author
+**Gaia Gómez** — Software Engineering Student & Full Stack Developer
