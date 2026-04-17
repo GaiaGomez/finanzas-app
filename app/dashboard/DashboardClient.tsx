@@ -14,6 +14,7 @@ import type { GastoFijo, GastoVariable, Ingreso, Perfil, Deuda, Abono } from "@/
 
 interface Props {
   userId: string;
+  isDemo: boolean;
   perfil: Perfil | null;
   periodoInicial: string;
   fijosIniciales: GastoFijo[];
@@ -24,12 +25,12 @@ interface Props {
 }
 
 export default function DashboardClient({
-  userId, periodoInicial,
+  userId, isDemo, periodoInicial,
   fijosIniciales, variablesIniciales, ingresosIniciales,
   deudasIniciales, abonosIniciales,
 }: Props) {
   const db = useDashboard({
-    userId, periodoInicial,
+    userId, isDemo, periodoInicial,
     fijosIniciales, variablesIniciales, ingresosIniciales,
     deudasIniciales, abonosIniciales,
   });
@@ -95,26 +96,36 @@ export default function DashboardClient({
       )}
 
       {/* ══ HEADER ══ */}
-      <div className="sticky top-0 z-10 border-b border-brand-border px-4 py-4 bg-[linear-gradient(160deg,#13101f,#1a0f2e)]">
-        <div className="max-w-xl mx-auto">
-          <DashboardHeader
-            periodo={db.periodo}
-            onPrevMes={() => db.cambiarPeriodo(prevPeriodo(db.periodo))}
-            onNextMes={() => db.cambiarPeriodo(nextPeriodo(db.periodo))}
-            onOpenIngreso={() => db.setModalIngreso(true)}
-            onLogout={db.logout}
-          />
-          <MonthSummary
-            periodo={db.periodo}
-            totalIngresos={db.totalIngresos}
-            gastado={db.gastado}
-            disponible={db.disponible}
-            pct={db.pct}
-            ingresos={db.ingresos}
-            fijos={db.fijos}
-            vars={db.vars}
-            abonos={db.abonos}
-          />
+      <div className="sticky top-0 z-10">
+        {db.isDemo && (
+          <div className="bg-brand-purple/20 border-b border-brand-purple/30 px-4 py-2 text-center text-xs text-brand-purple font-medium">
+            Estás en modo demo ·{" "}
+            <a href="/auth" className="font-bold underline underline-offset-2 hover:text-white transition-colors">
+              Crear cuenta gratis
+            </a>
+          </div>
+        )}
+        <div className="border-b border-brand-border px-4 py-4 bg-[linear-gradient(160deg,#13101f,#1a0f2e)]">
+          <div className="max-w-xl mx-auto">
+            <DashboardHeader
+              periodo={db.periodo}
+              onPrevMes={() => db.cambiarPeriodo(prevPeriodo(db.periodo))}
+              onNextMes={() => db.cambiarPeriodo(nextPeriodo(db.periodo))}
+              onOpenIngreso={() => db.setModalIngreso(true)}
+              onLogout={db.logout}
+            />
+            <MonthSummary
+              periodo={db.periodo}
+              totalIngresos={db.totalIngresos}
+              gastado={db.gastado}
+              disponible={db.disponible}
+              pct={db.pct}
+              ingresos={db.ingresos}
+              fijos={db.fijos}
+              vars={db.vars}
+              abonos={db.abonos}
+            />
+          </div>
         </div>
       </div>
 
@@ -221,6 +232,14 @@ export default function DashboardClient({
           </>
         )}
       </div>
+
+      {/* ══ DEMO TOAST ══ */}
+      {db.demoBlocked && (
+        <div className="fixed bottom-6 left-4 right-4 z-50 max-w-sm mx-auto bg-brand-purple text-brand-bg text-sm font-semibold rounded-2xl px-5 py-3.5 text-center shadow-xl shadow-brand-purple/30 animate-fade-in">
+          🔒 Crea tu cuenta para gestionar tus finanzas ·{" "}
+          <a href="/auth" className="underline underline-offset-2 font-black">Registrarse</a>
+        </div>
+      )}
     </div>
   );
 }

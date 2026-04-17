@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo";
 
 type Modo = "login" | "registro" | "magic";
 
@@ -84,6 +85,16 @@ export default function AuthPage() {
       options: { redirectTo: `${window.location.origin}/api/auth/callback` },
     });
     if (error) { setError(parseAuthError(error)); setLoading(false); }
+  }
+
+  async function handleDemo() {
+    setLoading(true); reset();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: DEMO_EMAIL,
+      password: DEMO_PASSWORD,
+    });
+    if (error) { setError("No se pudo cargar el demo. Intenta de nuevo."); setLoading(false); return; }
+    window.location.href = "/dashboard";
   }
 
   const inputCls = "bg-[#1a1730] border border-[#2a2440] rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-purple transition-colors text-white placeholder:text-brand-muted w-full";
@@ -192,6 +203,21 @@ export default function AuthPage() {
             )
           )}
         </div>
+
+        {/* Demo */}
+        <div className="mt-3 text-center">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex-1 h-px bg-brand-border"/>
+            <span className="text-brand-muted text-xs">¿solo quieres explorar?</span>
+            <div className="flex-1 h-px bg-brand-border"/>
+          </div>
+          <button onClick={handleDemo} disabled={loading}
+            className="w-full py-2.5 rounded-xl border border-brand-border text-brand-muted text-sm font-semibold hover:border-brand-purple/50 hover:text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+            <span className="text-base leading-none">▶</span>
+            Explorar demo
+          </button>
+        </div>
+
       </div>
     </div>
   );

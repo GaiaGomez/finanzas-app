@@ -38,6 +38,16 @@
 3. Copy `.env.example` to `.env.local` and fill in your Supabase credentials
 4. `npm run dev`
 
+## Demo Mode
+The live demo uses a read-only guest account. To seed it in your own Supabase project:
+
+```bash
+# Add SUPABASE_SERVICE_ROLE_KEY to your .env.local (from Supabase → Settings → API)
+npx tsx scripts/seed-demo.ts
+```
+
+The script is idempotent — running it again resets the demo data.
+
 ## Environment Variables
 See `.env.example` for required variables.
 

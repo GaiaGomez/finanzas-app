@@ -1,6 +1,7 @@
 // app/dashboard/page.tsx — Server Component
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getPeriodo } from "@/lib/utils";
+import { DEMO_EMAIL } from "@/lib/demo";
 import DashboardClient from "./DashboardClient";
 
 export default async function DashboardPage() {
@@ -19,9 +20,12 @@ export default async function DashboardPage() {
     supabase.from("abonos").select("*").eq("user_id", user.id).order("fecha", { ascending: false }),
   ]);
 
+  const isDemo = user.email === DEMO_EMAIL;
+
   return (
     <DashboardClient
       userId={user.id}
+      isDemo={isDemo}
       perfil={perfilRes.data}
       periodoInicial={periodo}
       fijosIniciales={fijosRes.data ?? []}
