@@ -47,8 +47,8 @@ Abre http://localhost:3000
 ```
 
 En Supabase → Authentication → URL Configuration agrega:
-- Site URL: `https://tu-app.vercel.app`
-- Redirect URLs: `https://tu-app.vercel.app/api/auth/callback`
+- Site URL: `https://fyntt.vercel.app`
+- Redirect URLs: `https://fyntt.vercel.app/api/auth/callback`
 
 ## Estructura
 ```
