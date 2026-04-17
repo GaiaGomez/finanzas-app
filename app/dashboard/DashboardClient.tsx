@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
-import { fmtCOP, getPeriodoLabel, nextPeriodo, prevPeriodo, COLOR_CAT } from "@/lib/utils";
+import { fmtCOP, getPeriodo, getPeriodoLabel, nextPeriodo, prevPeriodo, COLOR_CAT } from "@/lib/utils";
 import type { GastoFijo, GastoVariable, Ingreso, Perfil, Deuda, Abono } from "@/types";
 import Bar from "@/components/ui/Bar";
 import Dot from "@/components/ui/Dot";
@@ -77,7 +77,33 @@ export default function DashboardClient({
       supabase.from("gastos_variables").select("*").eq("user_id", userId).eq("periodo", p).order("created_at", { ascending: false }),
       supabase.from("ingresos").select("*").eq("user_id", userId).eq("periodo", p).order("fecha", { ascending: false }),
     ]);
-    setFijos(f.data ?? []);
+
+    let fijosData: GastoFijo[] = f.data ?? [];
+
+    // Si el mes está vacío y es el mes actual o futuro, copiar fijos del mes anterior
+    if (fijosData.length === 0 && p >= getPeriodo()) {
+      const { data: prevFijos } = await supabase
+        .from("gastos_fijos")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("periodo", prevPeriodo(p))
+        .order("created_at");
+
+      if (prevFijos && prevFijos.length > 0) {
+        const toInsert = prevFijos.map(({ id: _id, created_at: _ca, ...rest }) => ({
+          ...rest,
+          periodo: p,
+          pagado: false,
+        }));
+        const { data: nuevos } = await supabase
+          .from("gastos_fijos")
+          .insert(toInsert)
+          .select();
+        fijosData = nuevos ?? [];
+      }
+    }
+
+    setFijos(fijosData);
     setVars(v.data ?? []);
     setIngresos(i.data ?? []);
   }
