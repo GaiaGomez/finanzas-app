@@ -1,15 +1,13 @@
-// lib/supabase-server.ts
-// Cliente de Supabase para Server Components de Next.js
-// Necesita acceso a las cookies para mantener la sesión del usuario
-
+// lib/supabase-server.ts — cliente de Supabase para Server Components (usa cookies de sesión)
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { env } from "@/lib/env";
 
 export function createServerSupabase() {
   const cookieStore = cookies();
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    env.supabaseUrl,
+    env.supabaseKey,
     {
       cookies: {
         getAll() { return cookieStore.getAll(); },

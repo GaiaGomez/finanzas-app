@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase";
 import { fmtCOP, getPeriodo, getPeriodoLabel, nextPeriodo, prevPeriodo, COLOR_CAT } from "@/lib/utils";
+import { LIMITE_VARIABLES_PCT, ALERTA_ROJA, ALERTA_AMBER } from "@/lib/constants";
 import type { GastoFijo, GastoVariable, Ingreso, Perfil, Deuda, Abono } from "@/types";
 import Bar from "@/components/ui/Bar";
 import Dot from "@/components/ui/Dot";
@@ -98,24 +99,26 @@ export default function DashboardClient({
 
     // Si el mes está vacío y es el mes actual o futuro, copiar fijos del mes anterior
     if (fijosData.length === 0 && p >= getPeriodo()) {
-      const { data: prevFijos } = await supabase
+      const { data: prevFijos, error: errPrev } = await supabase
         .from("gastos_fijos")
         .select("*")
         .eq("user_id", userId)
         .eq("periodo", prevPeriodo(p))
         .order("created_at");
 
-      if (prevFijos && prevFijos.length > 0) {
+      if (errPrev) { setError(`Error al cargar mes anterior: ${errPrev.message}`); }
+      else if (prevFijos && prevFijos.length > 0) {
         const toInsert = prevFijos.map(({ id: _id, created_at: _ca, ...rest }) => ({
           ...rest,
           periodo: p,
           pagado: false,
         }));
-        const { data: nuevos } = await supabase
+        const { data: nuevos, error: errCopy } = await supabase
           .from("gastos_fijos")
           .insert(toInsert)
           .select();
-        fijosData = nuevos ?? [];
+        if (errCopy) setError(`Error al copiar gastos fijos: ${errCopy.message}`);
+        else fijosData = nuevos ?? [];
       }
     }
 
@@ -130,7 +133,6 @@ export default function DashboardClient({
     if (isNaN(monto) || monto <= 0) return;
     setSaving(true);
     setError(null);
-    console.log("[addIngreso] insertando:", { userId, monto, periodo });
     const { data, error: err } = await supabase.from("ingresos").insert({
       user_id: userId,
       monto,
@@ -138,7 +140,6 @@ export default function DashboardClient({
       fecha: new Date().toISOString().split("T")[0],
       periodo,
     }).select().single();
-    console.log("[addIngreso] resultado:", { data, error: err });
     if (err) { setError(`Error al guardar ingreso: ${err.message}`); setSaving(false); return; }
     if (data) setIngresos(prev => [data, ...prev]);
     setNIngreso({ monto: "", descripcion: "Pago" });
@@ -176,12 +177,10 @@ export default function DashboardClient({
     if (!nFijo.nombre.trim() || isNaN(monto)) return;
     setSaving(true);
     setError(null);
-    console.log("[addFijo] insertando:", { userId, nombre: nFijo.nombre, categoria: nFijo.categoria, monto, periodo });
     const { data, error: err } = await supabase.from("gastos_fijos").insert({
       user_id: userId, nombre: nFijo.nombre, categoria: nFijo.categoria,
       monto, pagado: false, periodo,
     }).select().single();
-    console.log("[addFijo] resultado:", { data, error: err });
     if (err) { setError(`Error al guardar gasto fijo: ${err.message}`); setSaving(false); return; }
     if (data) setFijos(prev => [...prev, data]);
     setNFijo({ nombre: "", categoria: "Casa", monto: "" });
@@ -208,12 +207,14 @@ export default function DashboardClient({
 
   async function editVar(id: string, campo: keyof GastoVariable, valor: string | number) {
     setVars(prev => prev.map(g => g.id === id ? { ...g, [campo]: valor } : g));
-    await supabase.from("gastos_variables").update({ [campo]: valor }).eq("id", id);
+    const { error: err } = await supabase.from("gastos_variables").update({ [campo]: valor }).eq("id", id);
+    if (err) setError(`Error al editar gasto: ${err.message}`);
   }
 
   async function delVar(id: string) {
     setVars(prev => prev.filter(g => g.id !== id));
-    await supabase.from("gastos_variables").delete().eq("id", id);
+    const { error: err } = await supabase.from("gastos_variables").delete().eq("id", id);
+    if (err) { setError(`Error al eliminar gasto: ${err.message}`); cambiarPeriodo(periodo); }
   }
 
   // ── DEUDAS ──
@@ -224,9 +225,11 @@ export default function DashboardClient({
     const monto = parseFloat(nDeuda.monto_total);
     if (!nDeuda.nombre.trim() || isNaN(monto) || monto <= 0) return;
     setSaving(true);
-    const { data } = await supabase.from("deudas").insert({
+    setError(null);
+    const { data, error: err } = await supabase.from("deudas").insert({
       user_id: userId, nombre: nDeuda.nombre, monto_total: monto,
     }).select().single();
+    if (err) { setError(`Error al guardar deuda: ${err.message}`); setSaving(false); return; }
     if (data) setDeudas(prev => [...prev, data]);
     setNDeuda({ nombre: "", monto_total: "" });
     setFormDeuda(false);
@@ -235,24 +238,28 @@ export default function DashboardClient({
 
   async function editDeuda(id: string, campo: keyof Deuda, valor: string | number) {
     setDeudas(prev => prev.map(d => d.id === id ? { ...d, [campo]: valor } : d));
-    await supabase.from("deudas").update({ [campo]: valor }).eq("id", id);
+    const { error: err } = await supabase.from("deudas").update({ [campo]: valor }).eq("id", id);
+    if (err) setError(`Error al editar deuda: ${err.message}`);
   }
 
   async function delDeuda(id: string) {
     setDeudas(prev => prev.filter(d => d.id !== id));
     setAbonos(prev => prev.filter(a => a.deuda_id !== id));
-    await supabase.from("deudas").delete().eq("id", id);
+    const { error: err } = await supabase.from("deudas").delete().eq("id", id);
+    if (err) { setError(`Error al eliminar deuda: ${err.message}`); cambiarPeriodo(periodo); }
   }
 
   async function addAbono(deudaId: string) {
     const monto = parseFloat(nAbono.monto);
     if (isNaN(monto) || monto <= 0) return;
     setSaving(true);
-    const { data } = await supabase.from("abonos").insert({
+    setError(null);
+    const { data, error: err } = await supabase.from("abonos").insert({
       deuda_id: deudaId, user_id: userId, monto,
       nota: nAbono.nota.trim(),
       fecha: new Date().toISOString().split("T")[0],
     }).select().single();
+    if (err) { setError(`Error al guardar abono: ${err.message}`); setSaving(false); return; }
     if (data) setAbonos(prev => [data, ...prev]);
     setNAbono({ monto: "", nota: "" });
     setAbonoAbierto(null);
@@ -261,7 +268,8 @@ export default function DashboardClient({
 
   async function delAbono(id: string) {
     setAbonos(prev => prev.filter(a => a.id !== id));
-    await supabase.from("abonos").delete().eq("id", id);
+    const { error: err } = await supabase.from("abonos").delete().eq("id", id);
+    if (err) { setError(`Error al eliminar abono: ${err.message}`); cambiarPeriodo(periodo); }
   }
 
   async function addAumento(deuda: Deuda) {
@@ -269,8 +277,10 @@ export default function DashboardClient({
     if (isNaN(monto) || monto <= 0) return;
     const nuevoTotal = deuda.monto_total + monto;
     setSaving(true);
+    setError(null);
     setDeudas(prev => prev.map(d => d.id === deuda.id ? { ...d, monto_total: nuevoTotal } : d));
-    await supabase.from("deudas").update({ monto_total: nuevoTotal }).eq("id", deuda.id);
+    const { error: err } = await supabase.from("deudas").update({ monto_total: nuevoTotal }).eq("id", deuda.id);
+    if (err) { setError(`Error al aumentar deuda: ${err.message}`); cambiarPeriodo(periodo); setSaving(false); return; }
     setNAumento({ monto: "", nota: "" });
     setAumentoAbierto(null);
     setSaving(false);
@@ -421,7 +431,7 @@ export default function DashboardClient({
           <div className="mb-3">
             <div className="flex justify-between text-[11px] mb-1">
               <span className="text-brand-muted">Gastado del mes</span>
-              <span className={`font-bold ${pct >= 90 ? "text-brand-red" : pct >= 70 ? "text-brand-yellow" : "text-brand-green"}`}>
+              <span className={`font-bold ${pct >= ALERTA_ROJA ? "text-brand-red" : pct >= ALERTA_AMBER ? "text-brand-yellow" : "text-brand-green"}`}>
                 {totalIngresos > 0 ? `${pct.toFixed(1)}%` : "Sin ingresos"}
               </span>
             </div>
@@ -573,9 +583,9 @@ export default function DashboardClient({
                 <span className="text-xs text-[#94a3b8]">Total variables</span>
                 <span className="text-lg font-extrabold font-mono text-brand-yellow">{fmtCOP(totalVars)}</span>
               </div>
-              <Bar val={totalVars} total={Math.max(totalIngresos * 0.20, 1)} color="#fbbf24" />
+              <Bar val={totalVars} total={Math.max(totalIngresos * LIMITE_VARIABLES_PCT, 1)} color="#fbbf24" />
               <p className="text-[11px] text-brand-muted mt-1.5">
-                Ref. 20% ingresos: {fmtCOP(totalIngresos * 0.20)} · {vars.length} gastos
+                Ref. {LIMITE_VARIABLES_PCT * 100}% ingresos: {fmtCOP(totalIngresos * LIMITE_VARIABLES_PCT)} · {vars.length} gastos
               </p>
             </div>
 
@@ -875,8 +885,8 @@ export default function DashboardClient({
               {[
                 { ok: disponible >= 0, label: "Dentro del presupuesto",
                   msg: disponible >= 0 ? `Te quedan ${fmtCOP(disponible)}` : `Déficit ${fmtCOP(Math.abs(disponible))}` },
-                { ok: totalVars <= totalIngresos * 0.20, label: "Variables ≤ 20% ingresos",
-                  msg: `${fmtCOP(totalVars)} de ${fmtCOP(totalIngresos * 0.20)}` },
+                { ok: totalVars <= totalIngresos * LIMITE_VARIABLES_PCT, label: `Variables ≤ ${LIMITE_VARIABLES_PCT * 100}% ingresos`,
+                  msg: `${fmtCOP(totalVars)} de ${fmtCOP(totalIngresos * LIMITE_VARIABLES_PCT)}` },
                 { ok: fijos.filter(g=>g.pagado).length === fijos.length && fijos.length > 0, label: "Todos los fijos pagados",
                   msg: `${fijos.filter(g=>g.pagado).length}/${fijos.length} marcados` },
                 { ok: totalIngresos >= totalFijos, label: "Ingresos cubren todos los fijos",
