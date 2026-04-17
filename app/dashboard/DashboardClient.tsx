@@ -55,13 +55,15 @@ export default function DashboardClient({
   const [nAumento, setNAumento] = useState({ monto: "", nota: "" });
 
   const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
 
   // ── CÁLCULOS ──
   const totalIngresos = ingresos.reduce((s, i) => s + i.monto, 0);
   const gastadoFijos  = fijos.filter(g => g.pagado).reduce((s, g) => s + g.monto, 0);
   const totalFijos    = fijos.reduce((s, g) => s + g.monto, 0);
   const totalVars     = vars.reduce((s, g) => s + g.monto, 0);
-  const gastado       = gastadoFijos + totalVars;
+  const totalAbonos   = abonos.filter(a => a.fecha?.startsWith(periodo)).reduce((s, a) => s + a.monto, 0);
+  const gastado       = gastadoFijos + totalVars + totalAbonos;
   const disponible    = totalIngresos - gastado;
   const pct           = totalIngresos > 0 ? Math.min((gastado / totalIngresos) * 100, 100) : 0;
   const cats          = [...new Set(fijos.map(g => g.categoria))];
@@ -85,13 +87,17 @@ export default function DashboardClient({
     const monto = parseFloat(nIngreso.monto);
     if (isNaN(monto) || monto <= 0) return;
     setSaving(true);
-    const { data } = await supabase.from("ingresos").insert({
+    setError(null);
+    console.log("[addIngreso] insertando:", { userId, monto, periodo });
+    const { data, error: err } = await supabase.from("ingresos").insert({
       user_id: userId,
       monto,
       descripcion: nIngreso.descripcion.trim() || "Pago",
       fecha: new Date().toISOString().split("T")[0],
       periodo,
     }).select().single();
+    console.log("[addIngreso] resultado:", { data, error: err });
+    if (err) { setError(`Error al guardar ingreso: ${err.message}`); setSaving(false); return; }
     if (data) setIngresos(prev => [data, ...prev]);
     setNIngreso({ monto: "", descripcion: "Pago" });
     setModalIngreso(false);
@@ -100,33 +106,41 @@ export default function DashboardClient({
 
   async function delIngreso(id: string) {
     setIngresos(prev => prev.filter(i => i.id !== id));
-    await supabase.from("ingresos").delete().eq("id", id);
+    const { error: err } = await supabase.from("ingresos").delete().eq("id", id);
+    if (err) { setError(`Error al eliminar ingreso: ${err.message}`); cambiarPeriodo(periodo); }
   }
 
   // ── GASTOS FIJOS ──
   async function toggleFijo(id: string, pagado: boolean) {
     setFijos(prev => prev.map(g => g.id === id ? { ...g, pagado: !pagado } : g));
-    await supabase.from("gastos_fijos").update({ pagado: !pagado }).eq("id", id);
+    const { error: err } = await supabase.from("gastos_fijos").update({ pagado: !pagado }).eq("id", id);
+    if (err) { setError(`Error al actualizar: ${err.message}`); setFijos(prev => prev.map(g => g.id === id ? { ...g, pagado } : g)); }
   }
 
   async function editFijo(id: string, campo: keyof GastoFijo, valor: string | number | boolean) {
     setFijos(prev => prev.map(g => g.id === id ? { ...g, [campo]: valor } : g));
-    await supabase.from("gastos_fijos").update({ [campo]: valor }).eq("id", id);
+    const { error: err } = await supabase.from("gastos_fijos").update({ [campo]: valor }).eq("id", id);
+    if (err) setError(`Error al editar: ${err.message}`);
   }
 
   async function delFijo(id: string) {
     setFijos(prev => prev.filter(g => g.id !== id));
-    await supabase.from("gastos_fijos").delete().eq("id", id);
+    const { error: err } = await supabase.from("gastos_fijos").delete().eq("id", id);
+    if (err) { setError(`Error al eliminar: ${err.message}`); cambiarPeriodo(periodo); }
   }
 
   async function addFijo() {
     const monto = parseFloat(nFijo.monto);
     if (!nFijo.nombre.trim() || isNaN(monto)) return;
     setSaving(true);
-    const { data } = await supabase.from("gastos_fijos").insert({
+    setError(null);
+    console.log("[addFijo] insertando:", { userId, nombre: nFijo.nombre, categoria: nFijo.categoria, monto, periodo });
+    const { data, error: err } = await supabase.from("gastos_fijos").insert({
       user_id: userId, nombre: nFijo.nombre, categoria: nFijo.categoria,
       monto, pagado: false, periodo,
     }).select().single();
+    console.log("[addFijo] resultado:", { data, error: err });
+    if (err) { setError(`Error al guardar gasto fijo: ${err.message}`); setSaving(false); return; }
     if (data) setFijos(prev => [...prev, data]);
     setNFijo({ nombre: "", categoria: "Casa", monto: "" });
     setFormFijo(false);
@@ -138,10 +152,12 @@ export default function DashboardClient({
     const monto = parseFloat(nVar.monto);
     if (!nVar.descripcion.trim() || isNaN(monto) || monto <= 0) return;
     setSaving(true);
-    const { data } = await supabase.from("gastos_variables").insert({
+    setError(null);
+    const { data, error: err } = await supabase.from("gastos_variables").insert({
       user_id: userId, descripcion: nVar.descripcion, categoria: nVar.categoria,
       monto, fecha: new Date().toISOString().split("T")[0], periodo,
     }).select().single();
+    if (err) { setError(`Error al guardar gasto variable: ${err.message}`); setSaving(false); return; }
     if (data) setVars(prev => [data, ...prev]);
     setNVar({ descripcion: "", categoria: "Otro", monto: "" });
     setFormVar(false);
@@ -276,6 +292,14 @@ export default function DashboardClient({
         </div>
       )}
 
+      {/* ══ BANNER DE ERROR ══ */}
+      {error && (
+        <div className="fixed top-4 left-4 right-4 z-50 max-w-xl mx-auto bg-red-900/90 border border-brand-red text-white text-sm rounded-xl px-4 py-3 flex items-start gap-3">
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="text-white/70 hover:text-white text-lg leading-none flex-shrink-0">×</button>
+        </div>
+      )}
+
       {/* ══ HEADER ══ */}
       <div className="sticky top-0 z-10 border-b border-brand-border px-4 py-4"
         style={{ background: "linear-gradient(160deg,#13101f,#1a0f2e)" }}>
@@ -323,7 +347,7 @@ export default function DashboardClient({
           <div className="grid grid-cols-3 gap-2">
             {[
               { label: "Ingresos",   val: totalIngresos, color: "text-brand-green",  sub: `${ingresos.length} registros` },
-              { label: "Gastado",    val: gastado,        color: "text-brand-red",    sub: `${fijos.filter(g=>g.pagado).length} fijos + ${vars.length} var` },
+              { label: "Gastado",    val: gastado,        color: "text-brand-red",    sub: `${fijos.filter(g=>g.pagado).length} fijos · ${vars.length} var · ${abonos.filter(a=>a.fecha?.startsWith(periodo)).length} abonos` },
               { label: "Disponible", val: disponible,     color: disponible >= 0 ? "text-brand-purple" : "text-brand-red",
                 sub: disponible < 0 ? "⚠️ déficit" : "libre" },
             ].map((s, i) => (
@@ -727,6 +751,7 @@ export default function DashboardClient({
                 { label: "Total ingresos",   val: totalIngresos,             color: "text-brand-green",  signo: "+" },
                 { label: "Fijos pagados",     val: gastadoFijos,              color: "text-brand-red",    signo: "−" },
                 { label: "Gastos variables",  val: totalVars,                 color: "text-brand-yellow", signo: "−" },
+                { label: "Abonos a deudas",   val: totalAbonos,               color: "text-brand-red",    signo: "−" },
                 { label: "Fijos pendientes",  val: totalFijos - gastadoFijos, color: "text-[#94a3b8]",    signo: "(−)", dim: true },
                 { label: "Disponible real",   val: disponible,                color: disponible>=0?"text-brand-purple":"text-brand-red", signo: "=", bold: true },
               ].map((r, i) => (
