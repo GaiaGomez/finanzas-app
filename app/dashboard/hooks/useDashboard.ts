@@ -34,10 +34,11 @@ export function useDashboard({
   const [abonos,   setAbonos]   = useState<Abono[]>(abonosIniciales);
 
   // ── UI GLOBAL ──
-  const [tab,          setTab]          = useState<Tab>("fijos");
-  const [saving,       setSaving]       = useState(false);
-  const [error,        setError]        = useState<string | null>(null);
-  const [modalIngreso, setModalIngreso] = useState(false);
+  const [tab,             setTab]             = useState<Tab>("fijos");
+  const [saving,          setSaving]          = useState(false);
+  const [error,           setError]           = useState<string | null>(null);
+  const [modalIngreso,    setModalIngreso]    = useState(false);
+  const [loadingPeriodo,  setLoadingPeriodo]  = useState(false);
 
   // ── FORMULARIOS ──
   const [formFijo,  setFormFijo]  = useState(false);
@@ -70,6 +71,7 @@ export function useDashboard({
   // ── CAMBIO DE PERIODO ──
   async function cambiarPeriodo(p: string) {
     setPeriodo(p);
+    setLoadingPeriodo(true);
     setFijos([]); setVars([]); setIngresos([]);
     const [f, v, i] = await Promise.all([
       supabase.from("gastos_fijos").select("*").eq("user_id", userId).eq("periodo", p).order("created_at"),
@@ -100,6 +102,7 @@ export function useDashboard({
     setFijos(fijosData);
     setVars(v.data ?? []);
     setIngresos(i.data ?? []);
+    setLoadingPeriodo(false);
   }
 
   // ── INGRESOS ──
@@ -139,6 +142,8 @@ export function useDashboard({
   }
 
   async function delFijo(id: string) {
+    const nombre = fijos.find(g => g.id === id)?.nombre ?? "este gasto";
+    if (!window.confirm(`¿Eliminar "${nombre}"?`)) return;
     setFijos(prev => prev.filter(g => g.id !== id));
     const { error: err } = await supabase.from("gastos_fijos").delete().eq("id", id);
     if (err) { setError(`Error al eliminar: ${err.message}`); cambiarPeriodo(periodo); }
@@ -182,6 +187,8 @@ export function useDashboard({
   }
 
   async function delVar(id: string) {
+    const desc = vars.find(g => g.id === id)?.descripcion ?? "este gasto";
+    if (!window.confirm(`¿Eliminar "${desc}"?`)) return;
     setVars(prev => prev.filter(g => g.id !== id));
     const { error: err } = await supabase.from("gastos_variables").delete().eq("id", id);
     if (err) { setError(`Error al eliminar gasto: ${err.message}`); cambiarPeriodo(periodo); }
@@ -212,6 +219,8 @@ export function useDashboard({
   }
 
   async function delDeuda(id: string) {
+    const nombre = deudas.find(d => d.id === id)?.nombre ?? "esta deuda";
+    if (!window.confirm(`¿Eliminar "${nombre}"?`)) return;
     setDeudas(prev => prev.filter(d => d.id !== id));
     setAbonos(prev => prev.filter(a => a.deuda_id !== id));
     const { error: err } = await supabase.from("deudas").delete().eq("id", id);
@@ -235,6 +244,7 @@ export function useDashboard({
   }
 
   async function delAbono(id: string) {
+    if (!window.confirm("¿Eliminar este abono?")) return;
     setAbonos(prev => prev.filter(a => a.id !== id));
     const { error: err } = await supabase.from("abonos").delete().eq("id", id);
     if (err) { setError(`Error al eliminar abono: ${err.message}`); cambiarPeriodo(periodo); }
@@ -267,7 +277,7 @@ export function useDashboard({
     // Constantes re-exportadas para los tabs
     LIMITE_VARIABLES_PCT, ALERTA_ROJA, ALERTA_AMBER,
     // UI global
-    tab, setTab, saving, error, setError, modalIngreso, setModalIngreso,
+    tab, setTab, saving, error, setError, modalIngreso, setModalIngreso, loadingPeriodo,
     // Formularios
     formFijo, setFormFijo, formVar, setFormVar, formDeuda, setFormDeuda,
     nFijo, setNFijo, nVar, setNVar, nDeuda, setNDeuda, nIngreso, setNIngreso,

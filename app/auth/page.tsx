@@ -129,8 +129,10 @@ export default function AuthPage() {
           {/* Login */}
           {modo === "login" && (
             <form onSubmit={handleLogin} className="flex flex-col gap-3">
-              <input type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} className={inputCls} required />
-              <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} className={inputCls} required />
+              <label className="sr-only" htmlFor="login-email">Email</label>
+              <input id="login-email" type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} className={inputCls} required />
+              <label className="sr-only" htmlFor="login-password">Contraseña</label>
+              <input id="login-password" type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} className={inputCls} required />
               {error && <p className="text-brand-red text-xs">{error}</p>}
               <button type="submit" disabled={loading || !email || !password}
                 className="bg-brand-purple text-brand-bg font-bold py-3 rounded-xl text-sm disabled:opacity-50">
@@ -153,9 +155,12 @@ export default function AuthPage() {
                 </div>
               ) : (
                 <>
-                  <input type="text" placeholder="Tu nombre" value={nombre} onChange={e => setNombre(e.target.value)} className={inputCls} required />
-                  <input type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} className={inputCls} required />
-                  <input type="password" placeholder="Contraseña (mín. 6 caracteres)" value={password} onChange={e => setPassword(e.target.value)} className={inputCls} required />
+                  <label className="sr-only" htmlFor="reg-nombre">Nombre</label>
+                  <input id="reg-nombre" type="text" placeholder="Tu nombre" value={nombre} onChange={e => setNombre(e.target.value)} className={inputCls} required />
+                  <label className="sr-only" htmlFor="reg-email">Email</label>
+                  <input id="reg-email" type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} className={inputCls} required />
+                  <label className="sr-only" htmlFor="reg-password">Contraseña</label>
+                  <input id="reg-password" type="password" placeholder="Contraseña (mín. 6 caracteres)" value={password} onChange={e => setPassword(e.target.value)} className={inputCls} required />
                   {error && <p className="text-brand-red text-xs">{error}</p>}
                   <button type="submit" disabled={loading || !email || !password || !nombre}
                     className="bg-brand-green text-brand-bg font-bold py-3 rounded-xl text-sm disabled:opacity-50">
@@ -176,7 +181,8 @@ export default function AuthPage() {
               </div>
             ) : (
               <form onSubmit={handleMagicLink} className="flex flex-col gap-3">
-                <input type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} className={inputCls} required />
+                <label className="sr-only" htmlFor="magic-email">Email</label>
+                <input id="magic-email" type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} className={inputCls} required />
                 {error && <p className="text-brand-red text-xs">{error}</p>}
                 <button type="submit" disabled={loading || !email}
                   className="bg-brand-purple text-brand-bg font-bold py-3 rounded-xl text-sm disabled:opacity-50">

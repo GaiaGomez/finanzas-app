@@ -1,13 +1,24 @@
-// app/layout.tsx — Layout raíz de Next.js
-// Este archivo envuelve TODAS las páginas de la app
-
 import type { Metadata, Viewport } from "next";
+import { DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+
+const dmMono = DM_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-dm-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Fynt",
   description: "Tu dashboard financiero personal",
-  manifest: "/manifest.json",          // PWA: le dice al navegador que es instalable
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -24,13 +35,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@500;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="bg-brand-bg text-white font-sans antialiased">
+      <body className={`${dmSans.variable} ${dmMono.variable} bg-brand-bg text-white font-sans antialiased`}>
         {children}
       </body>
     </html>

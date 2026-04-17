@@ -44,11 +44,13 @@ export default function DashboardClient({
           <div className="bg-brand-card border border-brand-border rounded-2xl p-6 w-full max-w-sm">
             <p className="text-sm font-bold text-brand-green mb-4">Registrar ingreso</p>
             <div className="flex flex-col gap-3">
-              <input type="number" value={db.nIngreso.monto}
+              <label className="sr-only" htmlFor="ingreso-monto">Monto del ingreso</label>
+              <input id="ingreso-monto" type="number" value={db.nIngreso.monto}
                 onChange={e => db.setNIngreso({ ...db.nIngreso, monto: e.target.value })}
                 placeholder="Monto" className={`${INPUT_CLS} text-right font-mono text-lg`}
                 autoFocus onKeyDown={e => e.key === "Enter" && db.addIngreso()} />
-              <input value={db.nIngreso.descripcion}
+              <label className="sr-only" htmlFor="ingreso-descripcion">Descripción del ingreso</label>
+              <input id="ingreso-descripcion" value={db.nIngreso.descripcion}
                 onChange={e => db.setNIngreso({ ...db.nIngreso, descripcion: e.target.value })}
                 placeholder="Descripción (ej: Pago quincenal)" className={INPUT_CLS}
                 onKeyDown={e => e.key === "Enter" && db.addIngreso()} />
@@ -129,82 +131,94 @@ export default function DashboardClient({
           ))}
         </div>
 
-        {db.tab === "fijos" && (
-          <FijosTab
-            fijos={db.fijos}
-            gastadoFijos={db.gastadoFijos}
-            totalFijos={db.totalFijos}
-            cats={db.cats}
-            saving={db.saving}
-            formFijo={db.formFijo}
-            setFormFijo={db.setFormFijo}
-            nFijo={db.nFijo}
-            setNFijo={db.setNFijo}
-            onToggle={db.toggleFijo}
-            onEdit={db.editFijo}
-            onDelete={db.delFijo}
-            onAdd={db.addFijo}
-          />
-        )}
+        {db.loadingPeriodo ? (
+          <div className="flex flex-col gap-3 animate-pulse" aria-busy="true" aria-label="Cargando datos del mes">
+            <div className="h-20 bg-brand-card rounded-2xl" />
+            <div className="h-14 bg-brand-card rounded-2xl" />
+            <div className="h-14 bg-brand-card rounded-2xl" />
+            <div className="h-14 bg-brand-card rounded-2xl" />
+            <div className="h-10 bg-brand-card rounded-2xl opacity-50" />
+          </div>
+        ) : (
+          <>
+            {db.tab === "fijos" && (
+              <FijosTab
+                fijos={db.fijos}
+                gastadoFijos={db.gastadoFijos}
+                totalFijos={db.totalFijos}
+                cats={db.cats}
+                saving={db.saving}
+                formFijo={db.formFijo}
+                setFormFijo={db.setFormFijo}
+                nFijo={db.nFijo}
+                setNFijo={db.setNFijo}
+                onToggle={db.toggleFijo}
+                onEdit={db.editFijo}
+                onDelete={db.delFijo}
+                onAdd={db.addFijo}
+              />
+            )}
 
-        {db.tab === "variables" && (
-          <VariablesTab
-            vars={db.vars}
-            totalVars={db.totalVars}
-            totalIngresos={db.totalIngresos}
-            disponible={db.disponible}
-            saving={db.saving}
-            formVar={db.formVar}
-            setFormVar={db.setFormVar}
-            nVar={db.nVar}
-            setNVar={db.setNVar}
-            onEdit={db.editVar}
-            onDelete={db.delVar}
-            onAdd={db.addVar}
-          />
-        )}
+            {db.tab === "variables" && (
+              <VariablesTab
+                vars={db.vars}
+                totalVars={db.totalVars}
+                totalIngresos={db.totalIngresos}
+                disponible={db.disponible}
+                saving={db.saving}
+                formVar={db.formVar}
+                setFormVar={db.setFormVar}
+                nVar={db.nVar}
+                setNVar={db.setNVar}
+                onEdit={db.editVar}
+                onDelete={db.delVar}
+                onAdd={db.addVar}
+              />
+            )}
 
-        {db.tab === "deudas" && (
-          <DeudasTab
-            deudas={db.deudas}
-            abonos={db.abonos}
-            saving={db.saving}
-            formDeuda={db.formDeuda}
-            setFormDeuda={db.setFormDeuda}
-            nDeuda={db.nDeuda}
-            setNDeuda={db.setNDeuda}
-            abonoAbierto={db.abonoAbierto}
-            setAbonoAbierto={db.setAbonoAbierto}
-            aumentoAbierto={db.aumentoAbierto}
-            setAumentoAbierto={db.setAumentoAbierto}
-            expandida={db.expandida}
-            setExpandida={db.setExpandida}
-            nAbono={db.nAbono}
-            setNAbono={db.setNAbono}
-            nAumento={db.nAumento}
-            setNAumento={db.setNAumento}
-            pagadoPor={db.pagadoPor}
-            onAdd={db.addDeuda}
-            onEdit={db.editDeuda}
-            onDelete={db.delDeuda}
-            onAddAbono={db.addAbono}
-            onDelAbono={db.delAbono}
-            onAddAumento={db.addAumento}
-          />
-        )}
+            {db.tab === "deudas" && (
+              <DeudasTab
+                deudas={db.deudas}
+                abonos={db.abonos}
+                saving={db.saving}
+                formDeuda={db.formDeuda}
+                setFormDeuda={db.setFormDeuda}
+                nDeuda={db.nDeuda}
+                setNDeuda={db.setNDeuda}
+                abonoAbierto={db.abonoAbierto}
+                setAbonoAbierto={db.setAbonoAbierto}
+                aumentoAbierto={db.aumentoAbierto}
+                setAumentoAbierto={db.setAumentoAbierto}
+                expandida={db.expandida}
+                setExpandida={db.setExpandida}
+                nAbono={db.nAbono}
+                setNAbono={db.setNAbono}
+                nAumento={db.nAumento}
+                setNAumento={db.setNAumento}
+                pagadoPor={db.pagadoPor}
+                onAdd={db.addDeuda}
+                onEdit={db.editDeuda}
+                onDelete={db.delDeuda}
+                onAddAbono={db.addAbono}
+                onDelAbono={db.delAbono}
+                onAddAumento={db.addAumento}
+              />
+            )}
 
-        {db.tab === "resumen" && (
-          <ResumenTab
-            periodo={db.periodo}
-            totalIngresos={db.totalIngresos}
-            gastadoFijos={db.gastadoFijos}
-            totalVars={db.totalVars}
-            totalAbonos={db.totalAbonos}
-            totalFijos={db.totalFijos}
-            disponible={db.disponible}
-            fijos={db.fijos}
-            vars={db.vars}
-          />
+            {db.tab === "resumen" && (
+              <ResumenTab
+                periodo={db.periodo}
+                totalIngresos={db.totalIngresos}
+                gastadoFijos={db.gastadoFijos}
+                totalVars={db.totalVars}
+                totalAbonos={db.totalAbonos}
+                totalFijos={db.totalFijos}
+                disponible={db.disponible}
+                fijos={db.fijos}
+                vars={db.vars}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
