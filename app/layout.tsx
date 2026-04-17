@@ -5,13 +5,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Finanzas",
+  title: "Fynt",
   description: "Tu dashboard financiero personal",
   manifest: "/manifest.json",          // PWA: le dice al navegador que es instalable
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Finanzas",
+    title: "Fynt",
   },
 };
 

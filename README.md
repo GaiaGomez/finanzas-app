@@ -1,6 +1,6 @@
-# 💰 Finanzas App
+# Fynt
 
-Dashboard financiero quincenal con login, offline (PWA) y multi-usuario.
+Dashboard financiero personal con login, offline (PWA) y multi-usuario.
 
 ## Stack
 - **Next.js 14** + TypeScript

@@ -353,7 +353,7 @@ export default function DashboardClient({
             <div className="flex items-center gap-2">
               {/* Logo */}
               <div className="w-8 h-8 rounded-full bg-brand-green flex items-center justify-center flex-shrink-0">
-                <span className="text-brand-bg font-black text-sm leading-none">P</span>
+                <span className="text-brand-bg font-black text-sm leading-none">F</span>
               </div>
               <button onClick={() => cambiarPeriodo(prevPeriodo(periodo))}
                 className="w-7 h-7 rounded-lg bg-[#1a1730] text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">‹</button>

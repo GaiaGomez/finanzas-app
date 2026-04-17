@@ -1,7 +1,7 @@
 {
-  "name": "Finanzas Personal",
-  "short_name": "Finanzas",
-  "description": "Tu dashboard financiero quincenal",
+  "name": "Fynt",
+  "short_name": "Fynt",
+  "description": "Tu dashboard financiero personal",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#080611",
