@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase";
 import { fmtCOP, getPeriodo, getPeriodoLabel, nextPeriodo, prevPeriodo, COLOR_CAT } from "@/lib/utils";
 import type { GastoFijo, GastoVariable, Ingreso, Perfil, Deuda, Abono } from "@/types";
@@ -56,6 +56,22 @@ export default function DashboardClient({
 
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent | TouchEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("touchstart", handleClick);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("touchstart", handleClick);
+    };
+  }, []);
 
   // ── CÁLCULOS ──
   const totalIngresos = ingresos.reduce((s, i) => s + i.monto, 0);
@@ -331,30 +347,73 @@ export default function DashboardClient({
         style={{ background: "linear-gradient(160deg,#13101f,#1a0f2e)" }}>
         <div className="max-w-xl mx-auto">
 
-          {/* Fila 1: navegación de periodo + logout */}
+          {/* Fila 1: logo + navegación de periodo + acciones */}
           <div className="flex items-center justify-between mb-3">
+            {/* Izquierda: logo + navegador de mes */}
             <div className="flex items-center gap-2">
+              {/* Logo */}
+              <div className="w-8 h-8 rounded-full bg-brand-green flex items-center justify-center flex-shrink-0">
+                <span className="text-brand-bg font-black text-sm leading-none">P</span>
+              </div>
               <button onClick={() => cambiarPeriodo(prevPeriodo(periodo))}
                 className="w-7 h-7 rounded-lg bg-[#1a1730] text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">‹</button>
-              <div>
-                <p className="text-[10px] text-brand-purple uppercase tracking-widest">Dashboard · COP</p>
-                <h1 className="text-base font-extrabold tracking-tight">{getPeriodoLabel(periodo)}</h1>
-              </div>
+              <h1 className="text-base font-extrabold tracking-tight">{getPeriodoLabel(periodo)}</h1>
               <button onClick={() => cambiarPeriodo(nextPeriodo(periodo))}
                 className="w-7 h-7 rounded-lg bg-[#1a1730] text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">›</button>
             </div>
+
+            {/* Derecha: + Ingreso + menú ⋮ */}
             <div className="flex items-center gap-2">
               <button onClick={() => setModalIngreso(true)}
                 className="bg-brand-green text-brand-bg font-bold px-3 py-1.5 rounded-xl text-xs hover:opacity-90 transition-opacity">
                 + Ingreso
               </button>
-              <button onClick={() => cambiarPeriodo(nextPeriodo(periodo))}
-                className="bg-[#1a1730] text-brand-muted font-semibold px-3 py-1.5 rounded-xl text-xs hover:text-white transition-colors">
-                Nuevo mes →
-              </button>
-              <button onClick={logout} className="text-[10px] text-brand-muted hover:text-brand-red transition-colors">
-                Salir
-              </button>
+
+              {/* Menú tres puntos */}
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setMenuOpen(o => !o)}
+                  style={{
+                    width: 36, height: 36,
+                    background: "rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 8,
+                    color: "rgba(255,255,255,0.6)",
+                    fontSize: 18,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer",
+                  }}>
+                  ⋮
+                </button>
+
+                {menuOpen && (
+                  <div style={{
+                    position: "absolute", right: 0, top: "calc(100% + 6px)",
+                    background: "#252547",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 10,
+                    padding: 4,
+                    minWidth: 160,
+                    zIndex: 50,
+                  }}>
+                    <button
+                      onClick={() => { cambiarPeriodo(nextPeriodo(periodo)); setMenuOpen(false); }}
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 13, borderRadius: 6, color: "#fff", background: "transparent", cursor: "pointer" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                      + Nuevo mes
+                    </button>
+                    <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "2px 6px" }} />
+                    <button
+                      onClick={() => { logout(); setMenuOpen(false); }}
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 13, borderRadius: 6, color: "rgba(255,255,255,0.4)", background: "transparent", cursor: "pointer" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                      Cerrar sesión
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
