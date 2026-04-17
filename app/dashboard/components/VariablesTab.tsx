@@ -30,8 +30,7 @@ export default function VariablesTab({
     <div className="flex flex-col gap-3">
       {/* Card de disponible */}
       <div
-        className={`bg-brand-card border rounded-2xl p-4 ${disponible >= 0 ? "border-brand-purple/30" : "border-brand-red/30"}`}
-        style={{ background: disponible >= 0 ? "#110e1f" : "#1a0d0d" }}>
+        className={`border rounded-2xl p-4 ${disponible >= 0 ? "border-brand-purple/30 bg-[#110e1f]" : "border-brand-red/30 bg-[#1a0d0d]"}`}>
         <div className="flex justify-between items-center">
           <div>
             <p className="text-[10px] text-brand-muted uppercase tracking-wider">Disponible ahora</p>

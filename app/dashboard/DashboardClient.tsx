@@ -39,8 +39,7 @@ export default function DashboardClient({
 
       {/* ══ MODAL INGRESO ══ */}
       {db.modalIngreso && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.7)" }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
           onClick={e => { if (e.target === e.currentTarget) db.setModalIngreso(false); }}>
           <div className="bg-brand-card border border-brand-border rounded-2xl p-6 w-full max-w-sm">
             <p className="text-sm font-bold text-brand-green mb-4">Registrar ingreso</p>
@@ -94,8 +93,7 @@ export default function DashboardClient({
       )}
 
       {/* ══ HEADER ══ */}
-      <div className="sticky top-0 z-10 border-b border-brand-border px-4 py-4"
-        style={{ background: "linear-gradient(160deg,#13101f,#1a0f2e)" }}>
+      <div className="sticky top-0 z-10 border-b border-brand-border px-4 py-4 bg-[linear-gradient(160deg,#13101f,#1a0f2e)]">
         <div className="max-w-xl mx-auto">
           <DashboardHeader
             periodo={db.periodo}
