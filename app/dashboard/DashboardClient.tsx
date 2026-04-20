@@ -12,10 +12,11 @@ import FijosTab from "./components/FijosTab";
 import VariablesTab from "./components/VariablesTab";
 import DeudasTab from "./components/DeudasTab";
 import ResumenTab from "./components/ResumenTab";
+import AhorroTab from "./components/AhorroTab";
 import { getPeriodoLabel, nextPeriodo, prevPeriodo } from "@/lib/utils";
 import { INPUT_CLS } from "@/lib/constants";
 import { fmtCOP } from "@/lib/utils";
-import type { GastoFijo, GastoVariable, Ingreso, Perfil, Deuda, Abono } from "@/types";
+import type { GastoFijo, GastoVariable, Ingreso, Perfil, Deuda, Abono, MetaAhorro } from "@/types";
 
 type AuthTab = "login" | "registro" | "magic";
 
@@ -29,6 +30,7 @@ interface Props {
   ingresosIniciales: Ingreso[];
   deudasIniciales: Deuda[];
   abonosIniciales: Abono[];
+  metasAhorroIniciales: MetaAhorro[];
 }
 
 // ── Componente principal ───────────────────────────────────────────────────
@@ -237,8 +239,8 @@ function Dashboard({ onAbout, onLogin, onRegister, ...dashboardProps }: Dashboar
 
       {/* ══ TABS ══ */}
       <div className="max-w-xl mx-auto px-4 pt-4">
-        <div className="grid grid-cols-4 gap-1.5 mb-4">
-          {([["fijos","💳 Fijos"],["variables","🛒 Variables"],["deudas","💸 Deudas"],["resumen","📊 Resumen"]] as const).map(([k, l]) => (
+        <div className="grid grid-cols-5 gap-1 mb-4">
+          {([["fijos","💳 Fijos"],["variables","🛒 Vars"],["deudas","💸 Deudas"],["ahorro","💰 Ahorro"],["resumen","📊"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => db.setTab(k)}
               className={`py-2 rounded-xl text-[11px] font-bold transition-all ${
                 db.tab === k
@@ -317,6 +319,24 @@ function Dashboard({ onAbout, onLogin, onRegister, ...dashboardProps }: Dashboar
                 onAddAbono={db.addAbono}
                 onDelAbono={db.delAbono}
                 onAddAumento={db.addAumento}
+              />
+            )}
+            {db.tab === "ahorro" && (
+              <AhorroTab
+                metas={db.metas}
+                saving={db.saving}
+                formMeta={db.formMeta}
+                setFormMeta={db.setFormMeta}
+                nMeta={db.nMeta}
+                setNMeta={db.setNMeta}
+                abonoMeta={db.abonoMeta}
+                setAbonoMeta={db.setAbonoMeta}
+                nAbonoMeta={db.nAbonoMeta}
+                setNAbonoMeta={db.setNAbonoMeta}
+                onAdd={db.addMeta}
+                onEdit={db.editMeta}
+                onDelete={db.delMeta}
+                onAddAbono={db.addAbonoMeta}
               />
             )}
             {db.tab === "resumen" && (

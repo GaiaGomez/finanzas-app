@@ -21,17 +21,19 @@ export default async function DashboardPage() {
         ingresosIniciales={[]}
         deudasIniciales={[]}
         abonosIniciales={[]}
+        metasAhorroIniciales={[]}
       />
     );
   }
 
-  const [perfilRes, fijosRes, varsRes, ingresosRes, deudasRes, abonosRes] = await Promise.all([
+  const [perfilRes, fijosRes, varsRes, ingresosRes, deudasRes, abonosRes, metasRes] = await Promise.all([
     supabase.from("perfiles").select("*").eq("id", user.id).single(),
     supabase.from("gastos_fijos").select("*").eq("user_id", user.id).eq("periodo", periodo).order("created_at"),
     supabase.from("gastos_variables").select("*").eq("user_id", user.id).eq("periodo", periodo).order("created_at", { ascending: false }),
     supabase.from("ingresos").select("*").eq("user_id", user.id).eq("periodo", periodo).order("fecha", { ascending: false }),
     supabase.from("deudas").select("*").eq("user_id", user.id).order("created_at"),
     supabase.from("abonos").select("*").eq("user_id", user.id).order("fecha", { ascending: false }),
+    supabase.from("metas_ahorro").select("*").eq("user_id", user.id).order("created_at"),
   ]);
 
   return (
@@ -45,6 +47,7 @@ export default async function DashboardPage() {
       ingresosIniciales={ingresosRes.data ?? []}
       deudasIniciales={deudasRes.data ?? []}
       abonosIniciales={abonosRes.data ?? []}
+      metasAhorroIniciales={metasRes.data ?? []}
     />
   );
 }

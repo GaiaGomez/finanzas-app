@@ -62,3 +62,12 @@ export interface Abono {
   fecha: string;
   created_at: string;
 }
+
+export interface MetaAhorro {
+  id: string;
+  user_id: string;
+  nombre: string;
+  monto_meta: number;
+  monto_actual: number;
+  created_at: string;
+}
