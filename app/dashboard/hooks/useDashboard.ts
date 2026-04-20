@@ -148,9 +148,13 @@ export function useDashboard({
 
   async function editFijo(id: string, campo: keyof GastoFijo, valor: string | number | boolean) {
     if (!userId) return;
+    const original = fijos.find(g => g.id === id);
     setFijos(prev => prev.map(g => g.id === id ? { ...g, [campo]: valor } : g));
     const { error: err } = await supabase.from("gastos_fijos").update({ [campo]: valor }).eq("id", id);
-    if (err) setError(`Error al editar: ${err.message}`);
+    if (err) {
+      setError(`Error al editar: ${err.message}`);
+      if (original) setFijos(prev => prev.map(g => g.id === id ? original : g));
+    }
   }
 
   async function delFijo(id: string) {
@@ -197,9 +201,13 @@ export function useDashboard({
 
   async function editVar(id: string, campo: keyof GastoVariable, valor: string | number) {
     if (!userId) return;
+    const original = vars.find(g => g.id === id);
     setVars(prev => prev.map(g => g.id === id ? { ...g, [campo]: valor } : g));
     const { error: err } = await supabase.from("gastos_variables").update({ [campo]: valor }).eq("id", id);
-    if (err) setError(`Error al editar gasto: ${err.message}`);
+    if (err) {
+      setError(`Error al editar gasto: ${err.message}`);
+      if (original) setVars(prev => prev.map(g => g.id === id ? original : g));
+    }
   }
 
   async function delVar(id: string) {
@@ -232,19 +240,29 @@ export function useDashboard({
 
   async function editDeuda(id: string, campo: keyof Deuda, valor: string | number) {
     if (!userId) return;
+    const original = deudas.find(d => d.id === id);
     setDeudas(prev => prev.map(d => d.id === id ? { ...d, [campo]: valor } : d));
     const { error: err } = await supabase.from("deudas").update({ [campo]: valor }).eq("id", id);
-    if (err) setError(`Error al editar deuda: ${err.message}`);
+    if (err) {
+      setError(`Error al editar deuda: ${err.message}`);
+      if (original) setDeudas(prev => prev.map(d => d.id === id ? original : d));
+    }
   }
 
   async function delDeuda(id: string) {
     if (!userId) return;
     const nombre = deudas.find(d => d.id === id)?.nombre ?? "esta deuda";
     if (!window.confirm(`¿Eliminar "${nombre}"?`)) return;
+    const deudasSnapshot = [...deudas];
+    const abonosSnapshot = [...abonos];
     setDeudas(prev => prev.filter(d => d.id !== id));
     setAbonos(prev => prev.filter(a => a.deuda_id !== id));
     const { error: err } = await supabase.from("deudas").delete().eq("id", id);
-    if (err) { setError(`Error al eliminar deuda: ${err.message}`); cambiarPeriodo(periodo); }
+    if (err) {
+      setError(`Error al eliminar deuda: ${err.message}`);
+      setDeudas(deudasSnapshot);
+      setAbonos(abonosSnapshot);
+    }
   }
 
   async function addAbono(deudaId: string) {
@@ -267,9 +285,13 @@ export function useDashboard({
   async function delAbono(id: string) {
     if (!userId) return;
     if (!window.confirm("¿Eliminar este abono?")) return;
+    const snapshot = [...abonos];
     setAbonos(prev => prev.filter(a => a.id !== id));
     const { error: err } = await supabase.from("abonos").delete().eq("id", id);
-    if (err) { setError(`Error al eliminar abono: ${err.message}`); cambiarPeriodo(periodo); }
+    if (err) {
+      setError(`Error al eliminar abono: ${err.message}`);
+      setAbonos(snapshot);
+    }
   }
 
   async function addAumento(deuda: Deuda) {
@@ -278,9 +300,15 @@ export function useDashboard({
     if (isNaN(monto) || monto <= 0) return;
     const nuevoTotal = deuda.monto_total + monto;
     setSaving(true); setError(null);
+    const snapshot = [...deudas];
     setDeudas(prev => prev.map(d => d.id === deuda.id ? { ...d, monto_total: nuevoTotal } : d));
     const { error: err } = await supabase.from("deudas").update({ monto_total: nuevoTotal }).eq("id", deuda.id);
-    if (err) { setError(`Error al aumentar deuda: ${err.message}`); cambiarPeriodo(periodo); setSaving(false); return; }
+    if (err) {
+      setError(`Error al aumentar deuda: ${err.message}`);
+      setDeudas(snapshot);
+      setSaving(false);
+      return;
+    }
     setNAumento({ monto: "", nota: "" });
     setAumentoAbierto(null);
     setSaving(false);
@@ -305,18 +333,26 @@ export function useDashboard({
 
   async function editMeta(id: string, campo: keyof MetaAhorro, valor: string | number) {
     if (!userId) return;
+    const original = metas.find(m => m.id === id);
     setMetas(prev => prev.map(m => m.id === id ? { ...m, [campo]: valor } : m));
     const { error: err } = await supabase.from("metas_ahorro").update({ [campo]: valor }).eq("id", id);
-    if (err) setError(`Error al editar meta: ${err.message}`);
+    if (err) {
+      setError(`Error al editar meta: ${err.message}`);
+      if (original) setMetas(prev => prev.map(m => m.id === id ? original : m));
+    }
   }
 
   async function delMeta(id: string) {
     if (!userId) return;
     const nombre = metas.find(m => m.id === id)?.nombre ?? "esta meta";
     if (!window.confirm(`¿Eliminar "${nombre}"?`)) return;
+    const snapshot = [...metas];
     setMetas(prev => prev.filter(m => m.id !== id));
     const { error: err } = await supabase.from("metas_ahorro").delete().eq("id", id);
-    if (err) setError(`Error al eliminar meta: ${err.message}`);
+    if (err) {
+      setError(`Error al eliminar meta: ${err.message}`);
+      setMetas(snapshot);
+    }
   }
 
   async function addAbonoMeta(metaId: string) {
@@ -327,9 +363,15 @@ export function useDashboard({
     if (!meta) return;
     const nuevoActual = meta.monto_actual + monto;
     setSaving(true); setError(null);
+    const snapshot = [...metas];
     setMetas(prev => prev.map(m => m.id === metaId ? { ...m, monto_actual: nuevoActual } : m));
     const { error: err } = await supabase.from("metas_ahorro").update({ monto_actual: nuevoActual }).eq("id", metaId);
-    if (err) { setError(`Error al registrar abono: ${err.message}`); setSaving(false); return; }
+    if (err) {
+      setError(`Error al registrar abono: ${err.message}`);
+      setMetas(snapshot);
+      setSaving(false);
+      return;
+    }
     setNAbonoMeta({ monto: "" });
     setAbonoMeta(null);
     setSaving(false);

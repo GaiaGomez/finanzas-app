@@ -2,11 +2,9 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase";
+import { INPUT_CLS_AUTH as INPUT_CLS } from "@/lib/constants";
 
 type Modo = "login" | "registro" | "magic";
-
-const INPUT_CLS =
-  "bg-[#1a1730] border border-[#2a2440] rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-purple transition-colors text-white placeholder:text-brand-muted w-full";
 
 interface Props {
   initialTab?: Modo;

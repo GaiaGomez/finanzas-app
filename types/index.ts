@@ -1,3 +1,6 @@
+/** ISO month string — always "YYYY-MM", e.g. "2026-04" */
+export type Periodo = string;
+
 export type Categoria =
   | "Suscripciones" | "Casa" | "Nicotina" | "Educación"
   | "Transporte" | "Deuda" | "Apoyo profesional" | "Ahorro" | "Otro";
@@ -13,7 +16,7 @@ export interface GastoFijo {
   categoria: Categoria;
   monto: number;
   pagado: boolean;
-  periodo: string;   // "2026-04"
+  periodo: Periodo;
   created_at: string;
 }
 
@@ -24,7 +27,7 @@ export interface GastoVariable {
   categoria: CategoriaVariable;
   monto: number;
   fecha: string;
-  periodo: string;   // "2026-04"
+  periodo: Periodo;
   created_at: string;
 }
 
@@ -34,7 +37,7 @@ export interface Ingreso {
   monto: number;
   descripcion: string;
   fecha: string;
-  periodo: string;   // "2026-04"
+  periodo: Periodo;
   created_at: string;
 }
 

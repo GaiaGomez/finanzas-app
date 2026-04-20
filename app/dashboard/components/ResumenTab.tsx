@@ -33,14 +33,14 @@ export default function ResumenTab({
           Flujo de {getPeriodoLabel(periodo)}
         </p>
         {[
-          { label: "Total ingresos",  val: totalIngresos,             color: "text-brand-green",  signo: "+" },
-          { label: "Fijos pagados",   val: gastadoFijos,              color: "text-brand-red",    signo: "−" },
-          { label: "Gastos variables",val: totalVars,                 color: "text-brand-yellow", signo: "−" },
-          { label: "Abonos a deudas", val: totalAbonos,               color: "text-brand-red",    signo: "−" },
-          { label: "Fijos pendientes",val: totalFijos - gastadoFijos, color: "text-[#94a3b8]",    signo: "(−)", dim: true },
-          { label: "Disponible real", val: disponible,                color: disponible >= 0 ? "text-brand-purple" : "text-brand-red", signo: "=", bold: true },
+          { label: "Total ingresos",  val: totalIngresos,             color: "text-brand-green",  signo: "+",   border: true },
+          { label: "Fijos pagados",   val: gastadoFijos,              color: "text-brand-red",    signo: "−",   border: true },
+          { label: "Gastos variables",val: totalVars,                 color: "text-brand-yellow", signo: "−",   border: true },
+          { label: "Abonos a deudas", val: totalAbonos,               color: "text-brand-red",    signo: "−",   border: true },
+          { label: "Fijos pendientes",val: totalFijos - gastadoFijos, color: "text-[#94a3b8]",    signo: "(−)", border: false, dim: true },
+          { label: "Disponible real", val: disponible,                color: disponible >= 0 ? "text-brand-purple" : "text-brand-red", signo: "=", border: false, bold: true },
         ].map((r, i) => (
-          <div key={i} className={`flex justify-between items-center py-2.5 ${i < 4 ? "border-b border-brand-border" : ""} ${r.dim ? "opacity-40" : ""}`}>
+          <div key={i} className={`flex justify-between items-center py-2.5 ${r.border ? "border-b border-brand-border" : ""} ${r.dim ? "opacity-40" : ""}`}>
             <span className={`text-sm text-[#94a3b8] ${r.bold ? "font-bold" : ""} ${r.dim ? "italic" : ""}`}>{r.label}</span>
             <span className={`font-mono text-sm font-extrabold ${r.color}`}>{r.signo} {fmtCOP(r.val)}</span>
           </div>
@@ -76,16 +76,19 @@ export default function ResumenTab({
             ok: disponible >= 0,
             label: "Dentro del presupuesto",
             msg: disponible >= 0 ? `Te quedan ${fmtCOP(disponible)}` : `Déficit ${fmtCOP(Math.abs(disponible))}`,
+            border: true,
           },
           {
             ok: totalVars <= totalIngresos * LIMITE_VARIABLES_PCT,
             label: `Variables ≤ ${LIMITE_VARIABLES_PCT * 100}% ingresos`,
             msg: `${fmtCOP(totalVars)} de ${fmtCOP(totalIngresos * LIMITE_VARIABLES_PCT)}`,
+            border: true,
           },
           {
             ok: fijos.filter(g => g.pagado).length === fijos.length && fijos.length > 0,
             label: "Todos los fijos pagados",
             msg: `${fijos.filter(g => g.pagado).length}/${fijos.length} marcados`,
+            border: true,
           },
           {
             ok: totalIngresos >= totalFijos,
@@ -93,9 +96,10 @@ export default function ResumenTab({
             msg: totalIngresos >= totalFijos
               ? `Sobran ${fmtCOP(totalIngresos - totalFijos)}`
               : `Déficit ${fmtCOP(totalFijos - totalIngresos)}`,
+            border: false,
           },
         ].map((item, i) => (
-          <div key={i} className={`flex justify-between items-center py-2.5 ${i < 3 ? "border-b border-brand-border" : ""}`}>
+          <div key={i} className={`flex justify-between items-center py-2.5 ${item.border ? "border-b border-brand-border" : ""}`}>
             <div className="flex items-center gap-2.5">
               <span>{item.ok ? "✅" : "⚠️"}</span>
               <span className="text-sm font-medium">{item.label}</span>

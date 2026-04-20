@@ -4,6 +4,7 @@ import { useState } from "react";
 import DashboardHeader from "./components/DashboardHeader";
 import AboutModal from "./components/AboutModal";
 import AuthPanel from "./components/AuthPanel";
+import IngresoModal from "./components/IngresoModal";
 import { useDashboard } from "./hooks/useDashboard";
 import MonthSummary from "./components/MonthSummary";
 import FijosTab from "./components/FijosTab";
@@ -11,8 +12,7 @@ import VariablesTab from "./components/VariablesTab";
 import DeudasTab from "./components/DeudasTab";
 import ResumenTab from "./components/ResumenTab";
 import AhorroTab from "./components/AhorroTab";
-import { fmtCOP, getPeriodoLabel, nextPeriodo, prevPeriodo } from "@/lib/utils";
-import { INPUT_CLS } from "@/lib/constants";
+import { nextPeriodo, prevPeriodo } from "@/lib/utils";
 import type { GastoFijo, GastoVariable, Ingreso, Deuda, Abono, MetaAhorro } from "@/types";
 
 type AuthTab = "login" | "registro" | "magic";
@@ -85,51 +85,16 @@ function Dashboard({ onAbout, onLogin, onRegister, ...dashboardProps }: Dashboar
 
       {/* ══ MODAL INGRESO ══ */}
       {db.modalIngreso && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
-          onClick={e => { if (e.target === e.currentTarget) db.setModalIngreso(false); }}>
-          <div className="bg-brand-card border border-brand-border rounded-2xl p-6 w-full max-w-sm">
-            <p className="text-sm font-bold text-brand-green mb-4">Registrar ingreso</p>
-            <div className="flex flex-col gap-3">
-              <label className="sr-only" htmlFor="ingreso-monto">Monto del ingreso</label>
-              <input id="ingreso-monto" type="number" value={db.nIngreso.monto}
-                onChange={e => db.setNIngreso({ ...db.nIngreso, monto: e.target.value })}
-                placeholder="Monto" className={`${INPUT_CLS} text-right font-mono text-lg`}
-                autoFocus onKeyDown={e => e.key === "Enter" && db.addIngreso()} />
-              <label className="sr-only" htmlFor="ingreso-descripcion">Descripción del ingreso</label>
-              <input id="ingreso-descripcion" value={db.nIngreso.descripcion}
-                onChange={e => db.setNIngreso({ ...db.nIngreso, descripcion: e.target.value })}
-                placeholder="Descripción (ej: Pago quincenal)" className={INPUT_CLS}
-                onKeyDown={e => e.key === "Enter" && db.addIngreso()} />
-              <div className="flex gap-2">
-                <button onClick={db.addIngreso} disabled={db.saving || !db.nIngreso.monto}
-                  className="flex-1 bg-brand-green text-brand-bg font-bold py-3 rounded-xl text-sm disabled:opacity-50">
-                  {db.saving ? "Guardando…" : "Guardar ingreso"}
-                </button>
-                <button onClick={() => db.setModalIngreso(false)}
-                  className="px-4 py-3 rounded-xl bg-[#1e1b2e] text-brand-muted text-sm">
-                  Cancelar
-                </button>
-              </div>
-            </div>
-            {db.ingresos.length > 0 && (
-              <div className="mt-4 border-t border-brand-border pt-4">
-                <p className="text-[10px] text-brand-muted uppercase tracking-wider mb-2">
-                  Ingresos de {getPeriodoLabel(db.periodo)}
-                </p>
-                {db.ingresos.map(i => (
-                  <div key={i.id} className="flex items-center justify-between py-1.5">
-                    <div>
-                      <p className="text-xs font-semibold text-brand-green font-mono">+ {fmtCOP(i.monto)}</p>
-                      <p className="text-[10px] text-brand-muted">{i.descripcion}</p>
-                    </div>
-                    <button onClick={() => db.delIngreso(i.id)}
-                      className="text-[#2a2440] hover:text-brand-red text-lg leading-none ml-3">×</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <IngresoModal
+          periodo={db.periodo}
+          ingresos={db.ingresos}
+          draft={db.nIngreso}
+          saving={db.saving}
+          onClose={() => db.setModalIngreso(false)}
+          onChange={db.setNIngreso}
+          onAdd={db.addIngreso}
+          onDelete={db.delIngreso}
+        />
       )}
 
       {/* ══ BANNER DE ERROR ══ */}
