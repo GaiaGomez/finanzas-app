@@ -12,7 +12,6 @@ export default async function DashboardPage() {
     return (
       <DashboardClient
         userId={null}
-        perfil={null}
         periodoInicial={periodo}
         fijosIniciales={[]}
         variablesIniciales={[]}
@@ -24,8 +23,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const [perfilRes, fijosRes, varsRes, ingresosRes, deudasRes, abonosRes, metasRes] = await Promise.all([
-    supabase.from("perfiles").select("*").eq("id", user.id).single(),
+  const [fijosRes, varsRes, ingresosRes, deudasRes, abonosRes, metasRes] = await Promise.all([
     supabase.from("gastos_fijos").select("*").eq("user_id", user.id).eq("periodo", periodo).order("created_at"),
     supabase.from("gastos_variables").select("*").eq("user_id", user.id).eq("periodo", periodo).order("created_at", { ascending: false }),
     supabase.from("ingresos").select("*").eq("user_id", user.id).eq("periodo", periodo).order("fecha", { ascending: false }),
@@ -37,7 +35,6 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       userId={user.id}
-      perfil={perfilRes.data}
       periodoInicial={periodo}
       fijosIniciales={fijosRes.data ?? []}
       variablesIniciales={varsRes.data ?? []}

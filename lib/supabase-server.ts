@@ -16,7 +16,10 @@ export function createServerSupabase() {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
-          } catch {}
+          } catch {
+            // Server Components render in a read-only context — cookie writes are
+            // handled by middleware, so this is safe to ignore.
+          }
         },
       },
     }

@@ -3,7 +3,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase";
 import { getPeriodo, prevPeriodo } from "@/lib/utils";
-import { LIMITE_VARIABLES_PCT, ALERTA_ROJA, ALERTA_AMBER } from "@/lib/constants";
 import type { GastoFijo, GastoVariable, Ingreso, Deuda, Abono, MetaAhorro } from "@/types";
 
 export type Tab = "fijos" | "variables" | "deudas" | "resumen" | "ahorro";
@@ -347,8 +346,6 @@ export function useDashboard({
     // Cálculos
     totalIngresos, gastadoFijos, totalFijos, totalVars, totalAbonos,
     gastado, disponible, pct, cats,
-    // Constantes re-exportadas para los tabs
-    LIMITE_VARIABLES_PCT, ALERTA_ROJA, ALERTA_AMBER,
     // UI global
     tab, setTab, saving, error, setError, modalIngreso, setModalIngreso, loadingPeriodo,
     // Formularios

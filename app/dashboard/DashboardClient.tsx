@@ -11,16 +11,14 @@ import VariablesTab from "./components/VariablesTab";
 import DeudasTab from "./components/DeudasTab";
 import ResumenTab from "./components/ResumenTab";
 import AhorroTab from "./components/AhorroTab";
-import { getPeriodoLabel, nextPeriodo, prevPeriodo } from "@/lib/utils";
+import { fmtCOP, getPeriodoLabel, nextPeriodo, prevPeriodo } from "@/lib/utils";
 import { INPUT_CLS } from "@/lib/constants";
-import { fmtCOP } from "@/lib/utils";
-import type { GastoFijo, GastoVariable, Ingreso, Perfil, Deuda, Abono, MetaAhorro } from "@/types";
+import type { GastoFijo, GastoVariable, Ingreso, Deuda, Abono, MetaAhorro } from "@/types";
 
 type AuthTab = "login" | "registro" | "magic";
 
 interface Props {
   userId: string | null;
-  perfil: Perfil | null;
   periodoInicial: string;
   fijosIniciales: GastoFijo[];
   variablesIniciales: GastoVariable[];

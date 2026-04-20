@@ -1,5 +1,4 @@
-import { fmtCOP } from "@/lib/utils";
-import { COLOR_CAT } from "@/lib/utils";
+import { fmtCOP, COLOR_CAT } from "@/lib/utils";
 import { CATS_VARIABLES, INPUT_CLS, LIMITE_VARIABLES_PCT } from "@/lib/constants";
 import Bar from "@/components/ui/Bar";
 import Dot from "@/components/ui/Dot";

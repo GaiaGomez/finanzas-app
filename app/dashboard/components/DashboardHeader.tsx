@@ -41,7 +41,6 @@ export default function DashboardHeader({
     return () => { fn(); setMenuOpen(false); };
   }
 
-  // Usuario sin sesión real (sin autenticar O en modo demo)
   const isGuest = !hasSession;
 
   return (
