@@ -239,10 +239,10 @@ function Dashboard({ onAbout, onLogin, onRegister, ...dashboardProps }: Dashboar
 
       {/* ══ TABS ══ */}
       <div className="max-w-xl mx-auto px-4 pt-4">
-        <div className="grid grid-cols-5 gap-1 mb-4">
-          {([["fijos","💳 Fijos"],["variables","🛒 Vars"],["deudas","💸 Deudas"],["ahorro","💰 Ahorro"],["resumen","📊"]] as const).map(([k, l]) => (
+        <div className="flex gap-1 mb-4 overflow-x-auto pb-0.5 scrollbar-none">
+          {([["fijos","Fijos"],["variables","Variables"],["deudas","Deudas"],["ahorro","Ahorro"],["resumen","Resumen"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => db.setTab(k)}
-              className={`py-2 rounded-xl text-[11px] font-bold transition-all ${
+              className={`flex-1 min-w-0 py-2 px-1 rounded-xl text-[11px] font-bold transition-all whitespace-nowrap ${
                 db.tab === k
                   ? "bg-brand-purple text-brand-bg shadow-lg shadow-brand-purple/30"
                   : "bg-brand-card text-brand-muted"
