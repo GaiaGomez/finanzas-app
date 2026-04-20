@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo";
 import DashboardHeader from "./components/DashboardHeader";
 import AboutModal from "./components/AboutModal";
 import AuthPanel from "./components/AuthPanel";
@@ -15,14 +17,10 @@ import { INPUT_CLS } from "@/lib/constants";
 import { fmtCOP } from "@/lib/utils";
 import type { GastoFijo, GastoVariable, Ingreso, Perfil, Deuda, Abono } from "@/types";
 
-// ── Tipos ──────────────────────────────────────────────────────────────────
+type AuthTab = "login" | "registro" | "magic";
 
-interface UnauthProps {
-  userId: null;
-}
-
-interface AuthProps {
-  userId: string;
+interface Props {
+  userId: string | null;
   isDemo: boolean;
   perfil: Perfil | null;
   periodoInicial: string;
@@ -33,65 +31,107 @@ interface AuthProps {
   abonosIniciales: Abono[];
 }
 
-type Props = UnauthProps | AuthProps;
-
 // ── Componente principal ───────────────────────────────────────────────────
 
 export default function DashboardClient(props: Props) {
-  const [showAbout, setShowAbout] = useState(false);
+  const [showAbout,  setShowAbout]  = useState(false);
+  const [authModal,  setAuthModal]  = useState<AuthTab | null>(null);
+  // Muestra skeleton mientras hace auto-login como demo (solo cuando no hay sesión)
+  const [loadingDemo, setLoadingDemo] = useState(props.userId === null);
+
+  useEffect(() => {
+    if (props.userId !== null) return;
+    createClient()
+      .auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD })
+      .then(({ error }) => {
+        if (!error) window.location.reload();
+        else setLoadingDemo(false); // fallback: muestra dashboard vacío
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (loadingDemo) return <DashboardSkeleton />;
 
   return (
     <>
-      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
-      {props.userId === null ? (
-        <UnauthView onAbout={() => setShowAbout(true)} />
-      ) : (
-        <AuthView {...props} onAbout={() => setShowAbout(true)} />
+      {/* ══ MODAL AUTH ══ */}
+      {authModal !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/70"
+          onClick={e => { if (e.target === e.currentTarget) setAuthModal(null); }}
+        >
+          <div className="w-full sm:max-w-sm bg-brand-bg sm:bg-transparent rounded-t-3xl sm:rounded-none pt-4 pb-safe">
+            <div className="flex items-center justify-between px-5 mb-2 sm:hidden">
+              <span className="text-xs text-brand-muted uppercase tracking-widest font-semibold">
+                {authModal === "registro" ? "Crear cuenta" : "Iniciar sesión"}
+              </span>
+              <button onClick={() => setAuthModal(null)}
+                className="text-brand-muted hover:text-white text-lg leading-none">×</button>
+            </div>
+            <AuthPanel initialTab={authModal} />
+          </div>
+        </div>
       )}
+
+      {/* ══ MODAL ACERCA DE ══ */}
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+
+      {/* ══ DASHBOARD ══ */}
+      <Dashboard
+        {...props}
+        onAbout={() => setShowAbout(true)}
+        onLogin={() => setAuthModal("login")}
+        onRegister={() => setAuthModal("registro")}
+      />
     </>
   );
 }
 
-// ── Vista sin sesión ───────────────────────────────────────────────────────
+// ── Skeleton de carga (auto-demo sign-in) ─────────────────────────────────
 
-function UnauthView({ onAbout }: { onAbout: () => void }) {
-  const [authTab, setAuthTab] = useState<"login" | "registro" | "magic">("login");
-
+function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-brand-bg text-white font-sans">
+    <div className="min-h-screen bg-brand-bg text-white font-sans animate-pulse">
       <div className="border-b border-brand-border px-4 py-4 bg-[linear-gradient(160deg,#13101f,#1a0f2e)]">
         <div className="max-w-xl mx-auto">
-          <DashboardHeader
-            isAuthenticated={false}
-            onLogin={() => setAuthTab("login")}
-            onRegister={() => setAuthTab("registro")}
-            onAbout={onAbout}
-          />
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-brand-card" />
+              <div className="w-5 h-5 rounded bg-brand-card" />
+              <div className="w-28 h-5 rounded-lg bg-brand-card" />
+              <div className="w-5 h-5 rounded bg-brand-card" />
+            </div>
+            <div className="flex gap-2">
+              <div className="w-20 h-7 rounded-xl bg-brand-card" />
+              <div className="w-9 h-9 rounded-lg bg-brand-card" />
+            </div>
+          </div>
+          <div className="h-24 rounded-2xl bg-brand-card" />
         </div>
       </div>
-
-      <div className="flex items-center justify-center px-4 py-16">
-        <div className="w-full max-w-sm">
-          <div className="text-center mb-6">
-            <p className="text-xs text-brand-purple uppercase tracking-widest mb-2 font-semibold">
-              Dashboard Financiero
-            </p>
-            <h2 className="text-2xl font-extrabold tracking-tight">Tu dinero, bajo control</h2>
-            <p className="text-brand-muted text-sm mt-1">
-              Presupuesta, rastrea deudas y visualiza tu progreso mes a mes.
-            </p>
-          </div>
-          <AuthPanel initialTab={authTab} key={authTab} />
+      <div className="max-w-xl mx-auto px-4 pt-4 flex flex-col gap-3">
+        <div className="grid grid-cols-4 gap-1.5">
+          {[0, 1, 2, 3].map(i => <div key={i} className="h-9 rounded-xl bg-brand-card" />)}
         </div>
+        <div className="h-20 rounded-2xl bg-brand-card" />
+        <div className="h-14 rounded-2xl bg-brand-card" />
+        <div className="h-14 rounded-2xl bg-brand-card" />
+        <div className="h-14 rounded-2xl bg-brand-card" />
+        <div className="h-10 rounded-2xl bg-brand-card opacity-50" />
       </div>
     </div>
   );
 }
 
-// ── Vista autenticada ──────────────────────────────────────────────────────
+// ── Dashboard (siempre el layout real) ────────────────────────────────────
 
-function AuthView(props: AuthProps & { onAbout: () => void }) {
-  const { onAbout, ...dashboardProps } = props;
+interface DashboardProps extends Props {
+  onAbout: () => void;
+  onLogin: () => void;
+  onRegister: () => void;
+}
+
+function Dashboard({ onAbout, onLogin, onRegister, ...dashboardProps }: DashboardProps) {
   const db = useDashboard(dashboardProps);
 
   return (
@@ -160,7 +200,7 @@ function AuthView(props: AuthProps & { onAbout: () => void }) {
           <div className="bg-brand-purple/20 border-b border-brand-purple/30 px-4 py-2 text-center text-xs text-brand-purple font-medium">
             Estás en modo demo ·{" "}
             <button
-              onClick={db.logout}
+              onClick={onRegister}
               className="font-bold underline underline-offset-2 hover:text-white transition-colors">
               Crear cuenta gratis
             </button>
@@ -169,12 +209,15 @@ function AuthView(props: AuthProps & { onAbout: () => void }) {
         <div className="border-b border-brand-border px-4 py-4 bg-[linear-gradient(160deg,#13101f,#1a0f2e)]">
           <div className="max-w-xl mx-auto">
             <DashboardHeader
-              isAuthenticated={true}
+              isDemo={db.isDemo}
+              hasSession={!!dashboardProps.userId}
               periodo={db.periodo}
               onPrevMes={() => db.cambiarPeriodo(prevPeriodo(db.periodo))}
               onNextMes={() => db.cambiarPeriodo(nextPeriodo(db.periodo))}
               onOpenIngreso={() => db.setModalIngreso(true)}
               onAbout={onAbout}
+              onLogin={onLogin}
+              onRegister={onRegister}
               onLogout={db.logout}
             />
             <MonthSummary
@@ -297,7 +340,7 @@ function AuthView(props: AuthProps & { onAbout: () => void }) {
       {db.demoBlocked && (
         <div className="fixed bottom-6 left-4 right-4 z-50 max-w-sm mx-auto bg-brand-purple text-brand-bg text-sm font-semibold rounded-2xl px-5 py-3.5 text-center shadow-xl shadow-brand-purple/30">
           🔒 Crea tu cuenta para gestionar tus finanzas ·{" "}
-          <button onClick={db.logout} className="underline underline-offset-2 font-black">
+          <button onClick={onRegister} className="underline underline-offset-2 font-black">
             Registrarse
           </button>
         </div>

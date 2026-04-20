@@ -7,11 +7,24 @@ export default async function DashboardPage() {
   const supabase = createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const periodo = getPeriodo();
+
   if (!user) {
-    return <DashboardClient userId={null} />;
+    return (
+      <DashboardClient
+        userId={null}
+        isDemo={false}
+        perfil={null}
+        periodoInicial={periodo}
+        fijosIniciales={[]}
+        variablesIniciales={[]}
+        ingresosIniciales={[]}
+        deudasIniciales={[]}
+        abonosIniciales={[]}
+      />
+    );
   }
 
-  const periodo = getPeriodo();
   const [perfilRes, fijosRes, varsRes, ingresosRes, deudasRes, abonosRes] = await Promise.all([
     supabase.from("perfiles").select("*").eq("id", user.id).single(),
     supabase.from("gastos_fijos").select("*").eq("user_id", user.id).eq("periodo", periodo).order("created_at"),

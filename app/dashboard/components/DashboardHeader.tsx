@@ -3,28 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 import { getPeriodoLabel } from "@/lib/utils";
 
-interface BaseProps {
-  onAbout: () => void;
-}
-
-interface AuthenticatedProps extends BaseProps {
-  isAuthenticated: true;
+interface Props {
+  isDemo: boolean;
+  hasSession: boolean;
   periodo: string;
   onPrevMes: () => void;
   onNextMes: () => void;
   onOpenIngreso: () => void;
+  onAbout: () => void;
+  onLogin: () => void;
+  onRegister: () => void;
   onLogout: () => void;
 }
 
-interface UnauthenticatedProps extends BaseProps {
-  isAuthenticated: false;
-  onLogin: () => void;
-  onRegister: () => void;
-}
-
-type Props = AuthenticatedProps | UnauthenticatedProps;
-
-export default function DashboardHeader(props: Props) {
+export default function DashboardHeader({
+  isDemo, hasSession, periodo,
+  onPrevMes, onNextMes, onOpenIngreso,
+  onAbout, onLogin, onRegister, onLogout,
+}: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -42,46 +38,37 @@ export default function DashboardHeader(props: Props) {
     };
   }, []);
 
+  function close(fn: () => void) {
+    return () => { fn(); setMenuOpen(false); };
+  }
+
+  // Usuario sin sesión real (sin autenticar O en modo demo)
+  const isGuest = !hasSession || isDemo;
+
   return (
     <div className="flex items-center justify-between mb-3">
-      {/* Izquierda: logo + (si autenticado) nav de mes */}
+      {/* Izquierda: logo + nav de mes */}
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-full bg-brand-green flex items-center justify-center flex-shrink-0">
           <span className="text-brand-bg font-black text-sm leading-none">F</span>
         </div>
-
-        {props.isAuthenticated && (
-          <>
-            <button
-              onClick={props.onPrevMes}
-              className="w-7 h-7 rounded-lg bg-[#1a1730] text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">
-              ‹
-            </button>
-            <h1 className="text-base font-extrabold tracking-tight">
-              {getPeriodoLabel(props.periodo)}
-            </h1>
-            <button
-              onClick={props.onNextMes}
-              className="w-7 h-7 rounded-lg bg-[#1a1730] text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">
-              ›
-            </button>
-          </>
-        )}
-
-        {!props.isAuthenticated && (
-          <span className="text-base font-extrabold tracking-tight">Fynt</span>
-        )}
+        <button onClick={onPrevMes}
+          className="w-7 h-7 rounded-lg bg-[#1a1730] text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">
+          ‹
+        </button>
+        <h1 className="text-base font-extrabold tracking-tight">{getPeriodoLabel(periodo)}</h1>
+        <button onClick={onNextMes}
+          className="w-7 h-7 rounded-lg bg-[#1a1730] text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">
+          ›
+        </button>
       </div>
 
-      {/* Derecha: (si autenticado) + Ingreso + menú ⋮ */}
+      {/* Derecha: + Ingreso + menú ⋮ */}
       <div className="flex items-center gap-2">
-        {props.isAuthenticated && (
-          <button
-            onClick={props.onOpenIngreso}
-            className="bg-brand-green text-brand-bg font-bold px-3 py-1.5 rounded-xl text-xs hover:opacity-90 transition-opacity">
-            + Ingreso
-          </button>
-        )}
+        <button onClick={onOpenIngreso}
+          className="bg-brand-green text-brand-bg font-bold px-3 py-1.5 rounded-xl text-xs hover:opacity-90 transition-opacity">
+          + Ingreso
+        </button>
 
         <div className="relative" ref={menuRef}>
           <button
@@ -93,33 +80,30 @@ export default function DashboardHeader(props: Props) {
 
           {menuOpen && (
             <div className="absolute right-0 top-[calc(100%+6px)] z-50 min-w-[170px] rounded-xl border border-white/10 bg-[#252547] p-1">
-              {!props.isAuthenticated && (
+              {isGuest ? (
                 <>
-                  <button
-                    onClick={() => { props.onLogin(); setMenuOpen(false); }}
+                  <button onClick={close(onLogin)}
                     className="block w-full text-left px-3.5 py-2.5 text-[13px] text-white rounded-md hover:bg-white/[0.07] transition-colors">
                     Iniciar sesión
                   </button>
-                  <button
-                    onClick={() => { props.onRegister(); setMenuOpen(false); }}
+                  <button onClick={close(onRegister)}
                     className="block w-full text-left px-3.5 py-2.5 text-[13px] text-white rounded-md hover:bg-white/[0.07] transition-colors">
                     Crear cuenta
                   </button>
                   <div className="h-px bg-white/[0.08] my-0.5 mx-1.5" />
+                  <button onClick={close(onAbout)}
+                    className="block w-full text-left px-3.5 py-2.5 text-[13px] text-white rounded-md hover:bg-white/[0.07] transition-colors">
+                    Acerca de
+                  </button>
                 </>
-              )}
-
-              <button
-                onClick={() => { props.onAbout(); setMenuOpen(false); }}
-                className="block w-full text-left px-3.5 py-2.5 text-[13px] text-white rounded-md hover:bg-white/[0.07] transition-colors">
-                Acerca de
-              </button>
-
-              {props.isAuthenticated && (
+              ) : (
                 <>
+                  <button onClick={close(onAbout)}
+                    className="block w-full text-left px-3.5 py-2.5 text-[13px] text-white rounded-md hover:bg-white/[0.07] transition-colors">
+                    Acerca de
+                  </button>
                   <div className="h-px bg-white/[0.08] my-0.5 mx-1.5" />
-                  <button
-                    onClick={() => { props.onLogout(); setMenuOpen(false); }}
+                  <button onClick={close(onLogout)}
                     className="block w-full text-left px-3.5 py-2.5 text-[13px] text-white/40 rounded-md hover:bg-white/[0.07] transition-colors">
                     Cerrar sesión
                   </button>

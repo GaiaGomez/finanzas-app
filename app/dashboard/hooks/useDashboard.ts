@@ -9,7 +9,7 @@ import type { GastoFijo, GastoVariable, Ingreso, Deuda, Abono } from "@/types";
 export type Tab = "fijos" | "variables" | "deudas" | "resumen";
 
 interface Input {
-  userId: string;
+  userId: string | null;
   isDemo: boolean;
   periodoInicial: string;
   fijosIniciales: GastoFijo[];
@@ -78,6 +78,7 @@ export function useDashboard({
   // ── CAMBIO DE PERIODO ──
   async function cambiarPeriodo(p: string) {
     setPeriodo(p);
+    if (!userId) return;
     setLoadingPeriodo(true);
     setFijos([]); setVars([]); setIngresos([]);
     const [f, v, i] = await Promise.all([
@@ -114,6 +115,8 @@ export function useDashboard({
 
   // ── INGRESOS ──
   async function addIngreso() {
+    if (!userId) return;
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nIngreso.monto);
     if (isNaN(monto) || monto <= 0) return;
@@ -131,6 +134,7 @@ export function useDashboard({
   }
 
   async function delIngreso(id: string) {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     setIngresos(prev => prev.filter(i => i.id !== id));
     const { error: err } = await supabase.from("ingresos").delete().eq("id", id);
@@ -139,6 +143,7 @@ export function useDashboard({
 
   // ── GASTOS FIJOS ──
   async function toggleFijo(id: string, pagado: boolean) {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     setFijos(prev => prev.map(g => g.id === id ? { ...g, pagado: !pagado } : g));
     const { error: err } = await supabase.from("gastos_fijos").update({ pagado: !pagado }).eq("id", id);
@@ -146,6 +151,7 @@ export function useDashboard({
   }
 
   async function editFijo(id: string, campo: keyof GastoFijo, valor: string | number | boolean) {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     setFijos(prev => prev.map(g => g.id === id ? { ...g, [campo]: valor } : g));
     const { error: err } = await supabase.from("gastos_fijos").update({ [campo]: valor }).eq("id", id);
@@ -153,6 +159,7 @@ export function useDashboard({
   }
 
   async function delFijo(id: string) {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     const nombre = fijos.find(g => g.id === id)?.nombre ?? "este gasto";
     if (!window.confirm(`¿Eliminar "${nombre}"?`)) return;
@@ -162,6 +169,7 @@ export function useDashboard({
   }
 
   async function addFijo() {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nFijo.monto);
     if (!nFijo.nombre.trim() || isNaN(monto)) return;
@@ -179,6 +187,7 @@ export function useDashboard({
 
   // ── GASTOS VARIABLES ──
   async function addVar() {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nVar.monto);
     if (!nVar.descripcion.trim() || isNaN(monto) || monto <= 0) return;
@@ -195,6 +204,7 @@ export function useDashboard({
   }
 
   async function editVar(id: string, campo: keyof GastoVariable, valor: string | number) {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     setVars(prev => prev.map(g => g.id === id ? { ...g, [campo]: valor } : g));
     const { error: err } = await supabase.from("gastos_variables").update({ [campo]: valor }).eq("id", id);
@@ -202,6 +212,7 @@ export function useDashboard({
   }
 
   async function delVar(id: string) {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     const desc = vars.find(g => g.id === id)?.descripcion ?? "este gasto";
     if (!window.confirm(`¿Eliminar "${desc}"?`)) return;
@@ -215,6 +226,7 @@ export function useDashboard({
     abonos.filter(a => a.deuda_id === deudaId).reduce((s, a) => s + a.monto, 0), [abonos]);
 
   async function addDeuda() {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nDeuda.monto_total);
     if (!nDeuda.nombre.trim() || isNaN(monto) || monto <= 0) return;
@@ -230,6 +242,7 @@ export function useDashboard({
   }
 
   async function editDeuda(id: string, campo: keyof Deuda, valor: string | number) {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     setDeudas(prev => prev.map(d => d.id === id ? { ...d, [campo]: valor } : d));
     const { error: err } = await supabase.from("deudas").update({ [campo]: valor }).eq("id", id);
@@ -237,6 +250,7 @@ export function useDashboard({
   }
 
   async function delDeuda(id: string) {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     const nombre = deudas.find(d => d.id === id)?.nombre ?? "esta deuda";
     if (!window.confirm(`¿Eliminar "${nombre}"?`)) return;
@@ -247,6 +261,7 @@ export function useDashboard({
   }
 
   async function addAbono(deudaId: string) {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nAbono.monto);
     if (isNaN(monto) || monto <= 0) return;
@@ -264,6 +279,7 @@ export function useDashboard({
   }
 
   async function delAbono(id: string) {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     if (!window.confirm("¿Eliminar este abono?")) return;
     setAbonos(prev => prev.filter(a => a.id !== id));
@@ -272,6 +288,7 @@ export function useDashboard({
   }
 
   async function addAumento(deuda: Deuda) {
+    if (!userId) return;
     if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nAumento.monto);
     if (isNaN(monto) || monto <= 0) return;
@@ -286,7 +303,7 @@ export function useDashboard({
   }
 
   async function logout() {
-    await supabase.auth.signOut();
+    if (userId) await supabase.auth.signOut();
     window.location.href = "/dashboard";
   }
 
