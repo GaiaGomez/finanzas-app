@@ -1,5 +1,5 @@
 // app/api/auth/callback/route.ts
-// Supabase redirige aquí después de que el usuario confirma su email o hace login con Google
+// Supabase redirige aquí después de confirmar email o usar magic link
 // Este endpoint intercambia el "code" temporal por una sesión real
 
 import { createServerClient } from "@supabase/ssr";

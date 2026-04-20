@@ -1,6 +1,5 @@
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getPeriodo } from "@/lib/utils";
-import { DEMO_EMAIL } from "@/lib/demo";
 import DashboardClient from "./DashboardClient";
 
 export default async function DashboardPage() {
@@ -13,7 +12,6 @@ export default async function DashboardPage() {
     return (
       <DashboardClient
         userId={null}
-        isDemo={false}
         perfil={null}
         periodoInicial={periodo}
         fijosIniciales={[]}
@@ -39,7 +37,6 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       userId={user.id}
-      isDemo={user.email === DEMO_EMAIL}
       perfil={perfilRes.data}
       periodoInicial={periodo}
       fijosIniciales={fijosRes.data ?? []}

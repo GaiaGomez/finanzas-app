@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { getPeriodoLabel } from "@/lib/utils";
 
 interface Props {
-  isDemo: boolean;
   hasSession: boolean;
   periodo: string;
   onPrevMes: () => void;
@@ -17,7 +16,7 @@ interface Props {
 }
 
 export default function DashboardHeader({
-  isDemo, hasSession, periodo,
+  hasSession, periodo,
   onPrevMes, onNextMes, onOpenIngreso,
   onAbout, onLogin, onRegister, onLogout,
 }: Props) {
@@ -43,7 +42,7 @@ export default function DashboardHeader({
   }
 
   // Usuario sin sesión real (sin autenticar O en modo demo)
-  const isGuest = !hasSession || isDemo;
+  const isGuest = !hasSession;
 
   return (
     <div className="flex items-center justify-between mb-3">

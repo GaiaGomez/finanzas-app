@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase";
-import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo";
+import { useState } from "react";
 import DashboardHeader from "./components/DashboardHeader";
 import AboutModal from "./components/AboutModal";
 import AuthPanel from "./components/AuthPanel";
@@ -22,7 +20,6 @@ type AuthTab = "login" | "registro" | "magic";
 
 interface Props {
   userId: string | null;
-  isDemo: boolean;
   perfil: Perfil | null;
   periodoInicial: string;
   fijosIniciales: GastoFijo[];
@@ -38,21 +35,6 @@ interface Props {
 export default function DashboardClient(props: Props) {
   const [showAbout,  setShowAbout]  = useState(false);
   const [authModal,  setAuthModal]  = useState<AuthTab | null>(null);
-  // Muestra skeleton mientras hace auto-login como demo (solo cuando no hay sesión)
-  const [loadingDemo, setLoadingDemo] = useState(props.userId === null);
-
-  useEffect(() => {
-    if (props.userId !== null) return;
-    createClient()
-      .auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD })
-      .then(({ error }) => {
-        if (!error) window.location.reload();
-        else setLoadingDemo(false); // fallback: muestra dashboard vacío
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (loadingDemo) return <DashboardSkeleton />;
 
   return (
     <>
@@ -89,43 +71,7 @@ export default function DashboardClient(props: Props) {
   );
 }
 
-// ── Skeleton de carga (auto-demo sign-in) ─────────────────────────────────
-
-function DashboardSkeleton() {
-  return (
-    <div className="min-h-screen bg-brand-bg text-white font-sans animate-pulse">
-      <div className="border-b border-brand-border px-4 py-4 bg-[linear-gradient(160deg,#13101f,#1a0f2e)]">
-        <div className="max-w-xl mx-auto">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-brand-card" />
-              <div className="w-5 h-5 rounded bg-brand-card" />
-              <div className="w-28 h-5 rounded-lg bg-brand-card" />
-              <div className="w-5 h-5 rounded bg-brand-card" />
-            </div>
-            <div className="flex gap-2">
-              <div className="w-20 h-7 rounded-xl bg-brand-card" />
-              <div className="w-9 h-9 rounded-lg bg-brand-card" />
-            </div>
-          </div>
-          <div className="h-24 rounded-2xl bg-brand-card" />
-        </div>
-      </div>
-      <div className="max-w-xl mx-auto px-4 pt-4 flex flex-col gap-3">
-        <div className="grid grid-cols-4 gap-1.5">
-          {[0, 1, 2, 3].map(i => <div key={i} className="h-9 rounded-xl bg-brand-card" />)}
-        </div>
-        <div className="h-20 rounded-2xl bg-brand-card" />
-        <div className="h-14 rounded-2xl bg-brand-card" />
-        <div className="h-14 rounded-2xl bg-brand-card" />
-        <div className="h-14 rounded-2xl bg-brand-card" />
-        <div className="h-10 rounded-2xl bg-brand-card opacity-50" />
-      </div>
-    </div>
-  );
-}
-
-// ── Dashboard (siempre el layout real) ────────────────────────────────────
+// ── Dashboard ─────────────────────────────────────────────────────────────
 
 interface DashboardProps extends Props {
   onAbout: () => void;
@@ -198,20 +144,9 @@ function Dashboard({ onAbout, onLogin, onRegister, ...dashboardProps }: Dashboar
 
       {/* ══ HEADER ══ */}
       <div className="sticky top-0 z-10">
-        {db.isDemo && (
-          <div className="bg-brand-purple/20 border-b border-brand-purple/30 px-4 py-2 text-center text-xs text-brand-purple font-medium">
-            Estás en modo demo ·{" "}
-            <button
-              onClick={onRegister}
-              className="font-bold underline underline-offset-2 hover:text-white transition-colors">
-              Crear cuenta gratis
-            </button>
-          </div>
-        )}
         <div className="border-b border-brand-border px-4 py-4 bg-[linear-gradient(160deg,#13101f,#1a0f2e)]">
           <div className="max-w-xl mx-auto">
             <DashboardHeader
-              isDemo={db.isDemo}
               hasSession={!!dashboardProps.userId}
               periodo={db.periodo}
               onPrevMes={() => db.cambiarPeriodo(prevPeriodo(db.periodo))}
@@ -356,15 +291,6 @@ function Dashboard({ onAbout, onLogin, onRegister, ...dashboardProps }: Dashboar
         )}
       </div>
 
-      {/* ══ DEMO TOAST ══ */}
-      {db.demoBlocked && (
-        <div className="fixed bottom-6 left-4 right-4 z-50 max-w-sm mx-auto bg-brand-purple text-brand-bg text-sm font-semibold rounded-2xl px-5 py-3.5 text-center shadow-xl shadow-brand-purple/30">
-          🔒 Crea tu cuenta para gestionar tus finanzas ·{" "}
-          <button onClick={onRegister} className="underline underline-offset-2 font-black">
-            Registrarse
-          </button>
-        </div>
-      )}
     </div>
   );
 }

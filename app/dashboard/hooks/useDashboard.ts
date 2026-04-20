@@ -10,7 +10,6 @@ export type Tab = "fijos" | "variables" | "deudas" | "resumen" | "ahorro";
 
 interface Input {
   userId: string | null;
-  isDemo: boolean;
   periodoInicial: string;
   fijosIniciales: GastoFijo[];
   variablesIniciales: GastoVariable[];
@@ -21,7 +20,7 @@ interface Input {
 }
 
 export function useDashboard({
-  userId, isDemo, periodoInicial,
+  userId, periodoInicial,
   fijosIniciales, variablesIniciales, ingresosIniciales,
   deudasIniciales, abonosIniciales, metasAhorroIniciales,
 }: Input) {
@@ -42,12 +41,6 @@ export function useDashboard({
   const [error,           setError]           = useState<string | null>(null);
   const [modalIngreso,    setModalIngreso]    = useState(false);
   const [loadingPeriodo,  setLoadingPeriodo]  = useState(false);
-  const [demoBlocked,     setDemoBlocked]     = useState(false);
-
-  function blockDemo() {
-    setDemoBlocked(true);
-    setTimeout(() => setDemoBlocked(false), 3000);
-  }
 
   // ── FORMULARIOS ──
   const [formFijo,  setFormFijo]  = useState(false);
@@ -98,7 +91,7 @@ export function useDashboard({
     let fijosData: GastoFijo[] = f.data ?? [];
 
     // Si el mes está vacío y es el mes actual o futuro, copiar fijos del mes anterior
-    if (!isDemo && fijosData.length === 0 && p >= getPeriodo()) {
+    if (fijosData.length === 0 && p >= getPeriodo()) {
       const { data: prevFijos, error: errPrev } = await supabase
         .from("gastos_fijos").select("*")
         .eq("user_id", userId).eq("periodo", prevPeriodo(p)).order("created_at");
@@ -124,8 +117,6 @@ export function useDashboard({
   // ── INGRESOS ──
   async function addIngreso() {
     if (!userId) return;
-    if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nIngreso.monto);
     if (isNaN(monto) || monto <= 0) return;
     setSaving(true); setError(null);
@@ -143,7 +134,6 @@ export function useDashboard({
 
   async function delIngreso(id: string) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     setIngresos(prev => prev.filter(i => i.id !== id));
     const { error: err } = await supabase.from("ingresos").delete().eq("id", id);
     if (err) { setError(`Error al eliminar ingreso: ${err.message}`); cambiarPeriodo(periodo); }
@@ -152,7 +142,6 @@ export function useDashboard({
   // ── GASTOS FIJOS ──
   async function toggleFijo(id: string, pagado: boolean) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     setFijos(prev => prev.map(g => g.id === id ? { ...g, pagado: !pagado } : g));
     const { error: err } = await supabase.from("gastos_fijos").update({ pagado: !pagado }).eq("id", id);
     if (err) { setError(`Error al actualizar: ${err.message}`); setFijos(prev => prev.map(g => g.id === id ? { ...g, pagado } : g)); }
@@ -160,7 +149,6 @@ export function useDashboard({
 
   async function editFijo(id: string, campo: keyof GastoFijo, valor: string | number | boolean) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     setFijos(prev => prev.map(g => g.id === id ? { ...g, [campo]: valor } : g));
     const { error: err } = await supabase.from("gastos_fijos").update({ [campo]: valor }).eq("id", id);
     if (err) setError(`Error al editar: ${err.message}`);
@@ -168,7 +156,6 @@ export function useDashboard({
 
   async function delFijo(id: string) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const nombre = fijos.find(g => g.id === id)?.nombre ?? "este gasto";
     if (!window.confirm(`¿Eliminar "${nombre}"?`)) return;
     setFijos(prev => prev.filter(g => g.id !== id));
@@ -178,7 +165,6 @@ export function useDashboard({
 
   async function addFijo() {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nFijo.monto);
     if (!nFijo.nombre.trim() || isNaN(monto)) return;
     setSaving(true); setError(null);
@@ -196,7 +182,6 @@ export function useDashboard({
   // ── GASTOS VARIABLES ──
   async function addVar() {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nVar.monto);
     if (!nVar.descripcion.trim() || isNaN(monto) || monto <= 0) return;
     setSaving(true); setError(null);
@@ -213,7 +198,6 @@ export function useDashboard({
 
   async function editVar(id: string, campo: keyof GastoVariable, valor: string | number) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     setVars(prev => prev.map(g => g.id === id ? { ...g, [campo]: valor } : g));
     const { error: err } = await supabase.from("gastos_variables").update({ [campo]: valor }).eq("id", id);
     if (err) setError(`Error al editar gasto: ${err.message}`);
@@ -221,7 +205,6 @@ export function useDashboard({
 
   async function delVar(id: string) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const desc = vars.find(g => g.id === id)?.descripcion ?? "este gasto";
     if (!window.confirm(`¿Eliminar "${desc}"?`)) return;
     setVars(prev => prev.filter(g => g.id !== id));
@@ -235,7 +218,6 @@ export function useDashboard({
 
   async function addDeuda() {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nDeuda.monto_total);
     if (!nDeuda.nombre.trim() || isNaN(monto) || monto <= 0) return;
     setSaving(true); setError(null);
@@ -251,7 +233,6 @@ export function useDashboard({
 
   async function editDeuda(id: string, campo: keyof Deuda, valor: string | number) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     setDeudas(prev => prev.map(d => d.id === id ? { ...d, [campo]: valor } : d));
     const { error: err } = await supabase.from("deudas").update({ [campo]: valor }).eq("id", id);
     if (err) setError(`Error al editar deuda: ${err.message}`);
@@ -259,7 +240,6 @@ export function useDashboard({
 
   async function delDeuda(id: string) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const nombre = deudas.find(d => d.id === id)?.nombre ?? "esta deuda";
     if (!window.confirm(`¿Eliminar "${nombre}"?`)) return;
     setDeudas(prev => prev.filter(d => d.id !== id));
@@ -270,7 +250,6 @@ export function useDashboard({
 
   async function addAbono(deudaId: string) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nAbono.monto);
     if (isNaN(monto) || monto <= 0) return;
     setSaving(true); setError(null);
@@ -288,7 +267,6 @@ export function useDashboard({
 
   async function delAbono(id: string) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     if (!window.confirm("¿Eliminar este abono?")) return;
     setAbonos(prev => prev.filter(a => a.id !== id));
     const { error: err } = await supabase.from("abonos").delete().eq("id", id);
@@ -297,7 +275,6 @@ export function useDashboard({
 
   async function addAumento(deuda: Deuda) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nAumento.monto);
     if (isNaN(monto) || monto <= 0) return;
     const nuevoTotal = deuda.monto_total + monto;
@@ -314,7 +291,6 @@ export function useDashboard({
 
   async function addMeta() {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nMeta.monto_meta);
     if (!nMeta.nombre.trim() || isNaN(monto) || monto <= 0) return;
     setSaving(true); setError(null);
@@ -330,7 +306,6 @@ export function useDashboard({
 
   async function editMeta(id: string, campo: keyof MetaAhorro, valor: string | number) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     setMetas(prev => prev.map(m => m.id === id ? { ...m, [campo]: valor } : m));
     const { error: err } = await supabase.from("metas_ahorro").update({ [campo]: valor }).eq("id", id);
     if (err) setError(`Error al editar meta: ${err.message}`);
@@ -338,7 +313,6 @@ export function useDashboard({
 
   async function delMeta(id: string) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const nombre = metas.find(m => m.id === id)?.nombre ?? "esta meta";
     if (!window.confirm(`¿Eliminar "${nombre}"?`)) return;
     setMetas(prev => prev.filter(m => m.id !== id));
@@ -348,7 +322,6 @@ export function useDashboard({
 
   async function addAbonoMeta(metaId: string) {
     if (!userId) return;
-    if (isDemo) { blockDemo(); return; }
     const monto = parseFloat(nAbonoMeta.monto);
     if (isNaN(monto) || monto <= 0) return;
     const meta = metas.find(m => m.id === metaId);
@@ -377,7 +350,7 @@ export function useDashboard({
     // Constantes re-exportadas para los tabs
     LIMITE_VARIABLES_PCT, ALERTA_ROJA, ALERTA_AMBER,
     // UI global
-    tab, setTab, saving, error, setError, modalIngreso, setModalIngreso, loadingPeriodo, demoBlocked, isDemo,
+    tab, setTab, saving, error, setError, modalIngreso, setModalIngreso, loadingPeriodo,
     // Formularios
     formFijo, setFormFijo, formVar, setFormVar, formDeuda, setFormDeuda,
     nFijo, setNFijo, nVar, setNVar, nDeuda, setNDeuda, nIngreso, setNIngreso,
