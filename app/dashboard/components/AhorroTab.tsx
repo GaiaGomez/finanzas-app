@@ -2,10 +2,11 @@ import { fmtCOP } from "@/lib/utils";
 import { INPUT_CLS } from "@/lib/constants";
 import Bar from "@/components/ui/Bar";
 import Editable from "@/components/ui/Editable";
-import type { MetaAhorro } from "@/types";
+import type { MetaAhorro, AbonoMeta } from "@/types";
 
 interface Props {
   metas: MetaAhorro[];
+  abonosMeta: AbonoMeta[];
   saving: boolean;
   formMeta: boolean;
   setFormMeta: (v: boolean) => void;
@@ -13,30 +14,34 @@ interface Props {
   setNMeta: (v: { nombre: string; monto_meta: string }) => void;
   abonoMeta: string | null;
   setAbonoMeta: (v: string | null) => void;
-  nAbonoMeta: { monto: string };
-  setNAbonoMeta: (v: { monto: string }) => void;
+  nAbonoMeta: { monto: string; nota: string };
+  setNAbonoMeta: (v: { monto: string; nota: string }) => void;
+  expandidaMeta: string | null;
+  setExpandidaMeta: (v: string | null) => void;
   onAdd: () => void;
   onEdit: (id: string, campo: keyof MetaAhorro, valor: string | number) => void;
   onDelete: (id: string) => void;
   onAddAbono: (metaId: string) => void;
+  onDelAbono: (id: string) => void;
 }
 
 const SKY = "#38bdf8";
 
 export default function AhorroTab({
-  metas, saving,
+  metas, abonosMeta, saving,
   formMeta, setFormMeta, nMeta, setNMeta,
   abonoMeta, setAbonoMeta, nAbonoMeta, setNAbonoMeta,
-  onAdd, onEdit, onDelete, onAddAbono,
+  expandidaMeta, setExpandidaMeta,
+  onAdd, onEdit, onDelete, onAddAbono, onDelAbono,
 }: Props) {
-  const totalMeta    = metas.reduce((s, m) => s + m.monto_meta, 0);
-  const totalActual  = metas.reduce((s, m) => s + m.monto_actual, 0);
-  const totalPend    = Math.max(totalMeta - totalActual, 0);
+  const totalMeta   = metas.reduce((s, m) => s + m.monto_meta, 0);
+  const totalActual = metas.reduce((s, m) => s + m.monto_actual, 0);
+  const totalPend   = Math.max(totalMeta - totalActual, 0);
 
   return (
     <div className="flex flex-col gap-3">
 
-      {/* ── RESUMEN GLOBAL (solo cuando hay metas) ── */}
+      {/* ── RESUMEN GLOBAL ── */}
       {metas.length > 0 && (
         <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
           <div className="flex justify-between items-center mb-2">
@@ -72,9 +77,11 @@ export default function AhorroTab({
 
       {/* ── LISTA DE METAS ── */}
       {metas.map(meta => {
-        const pct      = meta.monto_meta > 0 ? Math.min((meta.monto_actual / meta.monto_meta) * 100, 100) : 0;
+        const pct       = meta.monto_meta > 0 ? Math.min((meta.monto_actual / meta.monto_meta) * 100, 100) : 0;
         const alcanzada = meta.monto_actual >= meta.monto_meta && meta.monto_meta > 0;
-        const isOpen   = abonoMeta === meta.id;
+        const isOpen    = abonoMeta === meta.id;
+        const historial = abonosMeta.filter(a => a.meta_id === meta.id);
+        const expanded  = expandidaMeta === meta.id;
 
         return (
           <div key={meta.id} className="bg-brand-card border border-brand-border rounded-2xl p-4 flex flex-col gap-3">
@@ -115,7 +122,7 @@ export default function AhorroTab({
             {/* Barra de progreso */}
             <Bar val={meta.monto_actual} total={meta.monto_meta} color={alcanzada ? "#4ade80" : SKY} />
 
-            {/* Estado o botón abonar */}
+            {/* Abonar / completada */}
             {alcanzada ? (
               <div className="flex items-center gap-1.5 text-brand-green text-xs font-bold">
                 <span>✓</span>
@@ -124,38 +131,82 @@ export default function AhorroTab({
             ) : (
               <>
                 {isOpen ? (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={nAbonoMeta.monto}
+                        onChange={e => setNAbonoMeta({ ...nAbonoMeta, monto: e.target.value })}
+                        placeholder="Monto a abonar"
+                        className={`${INPUT_CLS} text-right font-mono flex-1`}
+                        autoFocus
+                        onKeyDown={e => e.key === "Enter" && onAddAbono(meta.id)}
+                      />
+                      <button
+                        onClick={() => onAddAbono(meta.id)}
+                        disabled={saving || !nAbonoMeta.monto}
+                        className="px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-50 flex-shrink-0"
+                        style={{ background: SKY, color: "#080611" }}>
+                        {saving ? "…" : "Abonar"}
+                      </button>
+                      <button
+                        onClick={() => { setAbonoMeta(null); setNAbonoMeta({ monto: "", nota: "" }); }}
+                        className="px-3 py-2 rounded-xl bg-[#1e1b2e] text-brand-muted text-xs flex-shrink-0">
+                        ×
+                      </button>
+                    </div>
                     <input
-                      type="number"
-                      value={nAbonoMeta.monto}
-                      onChange={e => setNAbonoMeta({ monto: e.target.value })}
-                      placeholder="Monto a abonar"
-                      className={`${INPUT_CLS} text-right font-mono flex-1`}
-                      autoFocus
-                      onKeyDown={e => e.key === "Enter" && onAddAbono(meta.id)}
+                      value={nAbonoMeta.nota}
+                      onChange={e => setNAbonoMeta({ ...nAbonoMeta, nota: e.target.value })}
+                      placeholder="Nota (opcional)"
+                      className={INPUT_CLS}
                     />
-                    <button
-                      onClick={() => onAddAbono(meta.id)}
-                      disabled={saving || !nAbonoMeta.monto}
-                      className="px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-50 flex-shrink-0"
-                      style={{ background: SKY, color: "#080611" }}>
-                      {saving ? "…" : "Abonar"}
-                    </button>
-                    <button
-                      onClick={() => { setAbonoMeta(null); setNAbonoMeta({ monto: "" }); }}
-                      className="px-3 py-2 rounded-xl bg-[#1e1b2e] text-brand-muted text-xs flex-shrink-0">
-                      ×
-                    </button>
                   </div>
                 ) : (
                   <button
-                    onClick={() => { setAbonoMeta(meta.id); setNAbonoMeta({ monto: "" }); }}
+                    onClick={() => { setAbonoMeta(meta.id); setNAbonoMeta({ monto: "", nota: "" }); }}
                     className="self-start text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors"
                     style={{ borderColor: SKY + "40", color: SKY }}>
                     + Abonar
                   </button>
                 )}
               </>
+            )}
+
+            {/* Historial de abonos */}
+            {historial.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setExpandidaMeta(expanded ? null : meta.id)}
+                  className="text-[11px] text-brand-muted hover:text-white transition-colors flex items-center gap-1">
+                  <span>{expanded ? "▾" : "▸"}</span>
+                  <span>{historial.length} abono{historial.length !== 1 ? "s" : ""}</span>
+                </button>
+                {expanded && (
+                  <div className="mt-2 flex flex-col gap-1.5 border-t border-brand-border pt-2">
+                    {historial.map(a => (
+                      <div key={a.id} className="flex items-center justify-between text-[11px] gap-2">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-mono font-semibold" style={{ color: SKY }}>
+                            +{fmtCOP(a.monto)}
+                          </span>
+                          {a.nota && (
+                            <span className="text-brand-muted truncate">{a.nota}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-brand-muted">{a.fecha}</span>
+                          <button
+                            onClick={() => onDelAbono(a.id)}
+                            className="text-[#2a2440] hover:text-brand-red text-base leading-none transition-colors">
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         );

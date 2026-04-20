@@ -13,7 +13,7 @@ import DeudasTab from "./components/DeudasTab";
 import ResumenTab from "./components/ResumenTab";
 import AhorroTab from "./components/AhorroTab";
 import { nextPeriodo, prevPeriodo } from "@/lib/utils";
-import type { GastoFijo, GastoVariable, Ingreso, Deuda, Abono, MetaAhorro } from "@/types";
+import type { GastoFijo, GastoVariable, Ingreso, Deuda, Abono, MetaAhorro, AbonoMeta } from "@/types";
 
 type AuthTab = "login" | "registro" | "magic";
 
@@ -26,6 +26,7 @@ interface Props {
   deudasIniciales: Deuda[];
   abonosIniciales: Abono[];
   metasAhorroIniciales: MetaAhorro[];
+  abonosMetaIniciales: AbonoMeta[];
 }
 
 // ── Componente principal ───────────────────────────────────────────────────
@@ -222,6 +223,7 @@ function Dashboard({ onAbout, onLogin, onRegister, ...dashboardProps }: Dashboar
             {db.tab === "ahorro" && (
               <AhorroTab
                 metas={db.metas}
+                abonosMeta={db.abonosMeta}
                 saving={db.saving}
                 formMeta={db.formMeta}
                 setFormMeta={db.setFormMeta}
@@ -231,10 +233,13 @@ function Dashboard({ onAbout, onLogin, onRegister, ...dashboardProps }: Dashboar
                 setAbonoMeta={db.setAbonoMeta}
                 nAbonoMeta={db.nAbonoMeta}
                 setNAbonoMeta={db.setNAbonoMeta}
+                expandidaMeta={db.expandidaMeta}
+                setExpandidaMeta={db.setExpandidaMeta}
                 onAdd={db.addMeta}
                 onEdit={db.editMeta}
                 onDelete={db.delMeta}
                 onAddAbono={db.addAbonoMeta}
+                onDelAbono={db.delAbonoMeta}
               />
             )}
             {db.tab === "resumen" && (

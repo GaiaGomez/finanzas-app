@@ -143,7 +143,29 @@ create policy "usuarios insertan sus abonos"
 create policy "usuarios borran sus abonos"
   on public.abonos for delete using (auth.uid() = user_id);
 
--- 7. FUNCIÓN AUTOMÁTICA: crear perfil al hacer signup
+-- 8. ABONOS A METAS DE AHORRO
+create table public.abonos_meta (
+  id uuid default gen_random_uuid() primary key,
+  meta_id uuid references public.metas_ahorro(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  monto numeric not null check (monto > 0),
+  nota text not null default '',
+  fecha date not null default current_date,
+  created_at timestamptz default now()
+);
+
+alter table public.abonos_meta enable row level security;
+
+create policy "usuarios ven sus abonos de metas"
+  on public.abonos_meta for select using (auth.uid() = user_id);
+
+create policy "usuarios insertan sus abonos de metas"
+  on public.abonos_meta for insert with check (auth.uid() = user_id);
+
+create policy "usuarios borran sus abonos de metas"
+  on public.abonos_meta for delete using (auth.uid() = user_id);
+
+-- 9. FUNCIÓN AUTOMÁTICA: crear perfil al hacer signup
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin

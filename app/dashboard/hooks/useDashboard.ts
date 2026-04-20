@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase";
 import { getPeriodo, prevPeriodo } from "@/lib/utils";
-import type { GastoFijo, GastoVariable, Ingreso, Deuda, Abono, MetaAhorro } from "@/types";
+import type { GastoFijo, GastoVariable, Ingreso, Deuda, Abono, MetaAhorro, AbonoMeta } from "@/types";
 
 export type Tab = "fijos" | "variables" | "deudas" | "resumen" | "ahorro";
 
@@ -16,12 +16,13 @@ interface Input {
   deudasIniciales: Deuda[];
   abonosIniciales: Abono[];
   metasAhorroIniciales: MetaAhorro[];
+  abonosMetaIniciales: AbonoMeta[];
 }
 
 export function useDashboard({
   userId, periodoInicial,
   fijosIniciales, variablesIniciales, ingresosIniciales,
-  deudasIniciales, abonosIniciales, metasAhorroIniciales,
+  deudasIniciales, abonosIniciales, metasAhorroIniciales, abonosMetaIniciales,
 }: Input) {
   const supabase = useMemo(() => createClient(), []);
 
@@ -32,7 +33,8 @@ export function useDashboard({
   const [ingresos, setIngresos] = useState<Ingreso[]>(ingresosIniciales);
   const [deudas,   setDeudas]   = useState<Deuda[]>(deudasIniciales);
   const [abonos,   setAbonos]   = useState<Abono[]>(abonosIniciales);
-  const [metas,    setMetas]    = useState<MetaAhorro[]>(metasAhorroIniciales);
+  const [metas,      setMetas]      = useState<MetaAhorro[]>(metasAhorroIniciales);
+  const [abonosMeta, setAbonosMeta] = useState<AbonoMeta[]>(abonosMetaIniciales);
 
   // ── UI GLOBAL ──
   const [tab,             setTab]             = useState<Tab>("fijos");
@@ -59,10 +61,11 @@ export function useDashboard({
   const [nAumento, setNAumento] = useState({ monto: "", nota: "" });
 
   // ── UI AHORRO ──
-  const [formMeta,    setFormMeta]    = useState(false);
-  const [nMeta,       setNMeta]       = useState({ nombre: "", monto_meta: "" });
-  const [abonoMeta,   setAbonoMeta]   = useState<string | null>(null);
-  const [nAbonoMeta,  setNAbonoMeta]  = useState({ monto: "" });
+  const [formMeta,       setFormMeta]       = useState(false);
+  const [nMeta,          setNMeta]          = useState({ nombre: "", monto_meta: "" });
+  const [abonoMeta,      setAbonoMeta]      = useState<string | null>(null);
+  const [nAbonoMeta,     setNAbonoMeta]     = useState({ monto: "", nota: "" });
+  const [expandidaMeta,  setExpandidaMeta]  = useState<string | null>(null);
 
   // ── CÁLCULOS ──
   const totalIngresos = ingresos.reduce((s, i) => s + i.monto, 0);
@@ -346,12 +349,15 @@ export function useDashboard({
     if (!userId) return;
     const nombre = metas.find(m => m.id === id)?.nombre ?? "esta meta";
     if (!window.confirm(`¿Eliminar "${nombre}"?`)) return;
-    const snapshot = [...metas];
+    const metasSnapshot = [...metas];
+    const abonosSnapshot = [...abonosMeta];
     setMetas(prev => prev.filter(m => m.id !== id));
+    setAbonosMeta(prev => prev.filter(a => a.meta_id !== id));
     const { error: err } = await supabase.from("metas_ahorro").delete().eq("id", id);
     if (err) {
       setError(`Error al eliminar meta: ${err.message}`);
-      setMetas(snapshot);
+      setMetas(metasSnapshot);
+      setAbonosMeta(abonosSnapshot);
     }
   }
 
@@ -359,22 +365,47 @@ export function useDashboard({
     if (!userId) return;
     const monto = parseFloat(nAbonoMeta.monto);
     if (isNaN(monto) || monto <= 0) return;
-    const meta = metas.find(m => m.id === metaId);
-    if (!meta) return;
-    const nuevoActual = meta.monto_actual + monto;
     setSaving(true); setError(null);
-    const snapshot = [...metas];
-    setMetas(prev => prev.map(m => m.id === metaId ? { ...m, monto_actual: nuevoActual } : m));
-    const { error: err } = await supabase.from("metas_ahorro").update({ monto_actual: nuevoActual }).eq("id", metaId);
-    if (err) {
-      setError(`Error al registrar abono: ${err.message}`);
-      setMetas(snapshot);
-      setSaving(false);
-      return;
+    const { data, error: err } = await supabase.from("abonos_meta").insert({
+      meta_id: metaId, user_id: userId, monto,
+      nota: nAbonoMeta.nota.trim(),
+      fecha: new Date().toISOString().split("T")[0],
+    }).select().single();
+    if (err) { setError(`Error al registrar abono: ${err.message}`); setSaving(false); return; }
+    if (data) {
+      setAbonosMeta(prev => [data, ...prev]);
+      const nuevoActual = [...abonosMeta, data]
+        .filter(a => a.meta_id === metaId)
+        .reduce((s, a) => s + a.monto, 0);
+      setMetas(prev => prev.map(m => m.id === metaId ? { ...m, monto_actual: nuevoActual } : m));
+      await supabase.from("metas_ahorro").update({ monto_actual: nuevoActual }).eq("id", metaId);
     }
-    setNAbonoMeta({ monto: "" });
+    setNAbonoMeta({ monto: "", nota: "" });
     setAbonoMeta(null);
     setSaving(false);
+  }
+
+  async function delAbonoMeta(id: string) {
+    if (!userId) return;
+    if (!window.confirm("¿Eliminar este abono?")) return;
+    const abono = abonosMeta.find(a => a.id === id);
+    if (!abono) return;
+    const abonosSnapshot = [...abonosMeta];
+    const metasSnapshot = [...metas];
+    const nuevosAbonos = abonosMeta.filter(a => a.id !== id);
+    setAbonosMeta(nuevosAbonos);
+    const nuevoActual = nuevosAbonos
+      .filter(a => a.meta_id === abono.meta_id)
+      .reduce((s, a) => s + a.monto, 0);
+    setMetas(prev => prev.map(m => m.id === abono.meta_id ? { ...m, monto_actual: nuevoActual } : m));
+    const { error: err } = await supabase.from("abonos_meta").delete().eq("id", id);
+    if (err) {
+      setError(`Error al eliminar abono: ${err.message}`);
+      setAbonosMeta(abonosSnapshot);
+      setMetas(metasSnapshot);
+    } else {
+      await supabase.from("metas_ahorro").update({ monto_actual: nuevoActual }).eq("id", abono.meta_id);
+    }
   }
 
   async function logout() {
@@ -399,13 +430,14 @@ export function useDashboard({
     // UI ahorro
     formMeta, setFormMeta, nMeta, setNMeta,
     abonoMeta, setAbonoMeta, nAbonoMeta, setNAbonoMeta,
+    abonosMeta, expandidaMeta, setExpandidaMeta,
     // Handlers
     cambiarPeriodo, addIngreso, delIngreso,
     toggleFijo, editFijo, delFijo, addFijo,
     addVar, editVar, delVar,
     pagadoPor, addDeuda, editDeuda, delDeuda,
     addAbono, delAbono, addAumento,
-    addMeta, editMeta, delMeta, addAbonoMeta,
+    addMeta, editMeta, delMeta, addAbonoMeta, delAbonoMeta,
     logout,
   };
 }
