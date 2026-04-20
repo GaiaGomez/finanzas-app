@@ -1,7 +1,10 @@
 "use client";
 
-import { useDashboard } from "./hooks/useDashboard";
+import { useState } from "react";
 import DashboardHeader from "./components/DashboardHeader";
+import AboutModal from "./components/AboutModal";
+import AuthPanel from "./components/AuthPanel";
+import { useDashboard } from "./hooks/useDashboard";
 import MonthSummary from "./components/MonthSummary";
 import FijosTab from "./components/FijosTab";
 import VariablesTab from "./components/VariablesTab";
@@ -12,7 +15,13 @@ import { INPUT_CLS } from "@/lib/constants";
 import { fmtCOP } from "@/lib/utils";
 import type { GastoFijo, GastoVariable, Ingreso, Perfil, Deuda, Abono } from "@/types";
 
-interface Props {
+// ── Tipos ──────────────────────────────────────────────────────────────────
+
+interface UnauthProps {
+  userId: null;
+}
+
+interface AuthProps {
   userId: string;
   isDemo: boolean;
   perfil: Perfil | null;
@@ -24,16 +33,66 @@ interface Props {
   abonosIniciales: Abono[];
 }
 
-export default function DashboardClient({
-  userId, isDemo, periodoInicial,
-  fijosIniciales, variablesIniciales, ingresosIniciales,
-  deudasIniciales, abonosIniciales,
-}: Props) {
-  const db = useDashboard({
-    userId, isDemo, periodoInicial,
-    fijosIniciales, variablesIniciales, ingresosIniciales,
-    deudasIniciales, abonosIniciales,
-  });
+type Props = UnauthProps | AuthProps;
+
+// ── Componente principal ───────────────────────────────────────────────────
+
+export default function DashboardClient(props: Props) {
+  const [showAbout, setShowAbout] = useState(false);
+
+  return (
+    <>
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+      {props.userId === null ? (
+        <UnauthView onAbout={() => setShowAbout(true)} />
+      ) : (
+        <AuthView {...props} onAbout={() => setShowAbout(true)} />
+      )}
+    </>
+  );
+}
+
+// ── Vista sin sesión ───────────────────────────────────────────────────────
+
+function UnauthView({ onAbout }: { onAbout: () => void }) {
+  const [authTab, setAuthTab] = useState<"login" | "registro" | "magic">("login");
+
+  return (
+    <div className="min-h-screen bg-brand-bg text-white font-sans">
+      <div className="border-b border-brand-border px-4 py-4 bg-[linear-gradient(160deg,#13101f,#1a0f2e)]">
+        <div className="max-w-xl mx-auto">
+          <DashboardHeader
+            isAuthenticated={false}
+            onLogin={() => setAuthTab("login")}
+            onRegister={() => setAuthTab("registro")}
+            onAbout={onAbout}
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center px-4 py-16">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-6">
+            <p className="text-xs text-brand-purple uppercase tracking-widest mb-2 font-semibold">
+              Dashboard Financiero
+            </p>
+            <h2 className="text-2xl font-extrabold tracking-tight">Tu dinero, bajo control</h2>
+            <p className="text-brand-muted text-sm mt-1">
+              Presupuesta, rastrea deudas y visualiza tu progreso mes a mes.
+            </p>
+          </div>
+          <AuthPanel initialTab={authTab} key={authTab} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Vista autenticada ──────────────────────────────────────────────────────
+
+function AuthView(props: AuthProps & { onAbout: () => void }) {
+  const { onAbout, ...dashboardProps } = props;
+  const db = useDashboard(dashboardProps);
 
   return (
     <div className="min-h-screen bg-brand-bg text-white font-sans pb-16">
@@ -100,18 +159,22 @@ export default function DashboardClient({
         {db.isDemo && (
           <div className="bg-brand-purple/20 border-b border-brand-purple/30 px-4 py-2 text-center text-xs text-brand-purple font-medium">
             Estás en modo demo ·{" "}
-            <a href="/auth" className="font-bold underline underline-offset-2 hover:text-white transition-colors">
+            <button
+              onClick={db.logout}
+              className="font-bold underline underline-offset-2 hover:text-white transition-colors">
               Crear cuenta gratis
-            </a>
+            </button>
           </div>
         )}
         <div className="border-b border-brand-border px-4 py-4 bg-[linear-gradient(160deg,#13101f,#1a0f2e)]">
           <div className="max-w-xl mx-auto">
             <DashboardHeader
+              isAuthenticated={true}
               periodo={db.periodo}
               onPrevMes={() => db.cambiarPeriodo(prevPeriodo(db.periodo))}
               onNextMes={() => db.cambiarPeriodo(nextPeriodo(db.periodo))}
               onOpenIngreso={() => db.setModalIngreso(true)}
+              onAbout={onAbout}
               onLogout={db.logout}
             />
             <MonthSummary
@@ -169,7 +232,6 @@ export default function DashboardClient({
                 onAdd={db.addFijo}
               />
             )}
-
             {db.tab === "variables" && (
               <VariablesTab
                 vars={db.vars}
@@ -186,7 +248,6 @@ export default function DashboardClient({
                 onAdd={db.addVar}
               />
             )}
-
             {db.tab === "deudas" && (
               <DeudasTab
                 deudas={db.deudas}
@@ -215,7 +276,6 @@ export default function DashboardClient({
                 onAddAumento={db.addAumento}
               />
             )}
-
             {db.tab === "resumen" && (
               <ResumenTab
                 periodo={db.periodo}
@@ -235,9 +295,11 @@ export default function DashboardClient({
 
       {/* ══ DEMO TOAST ══ */}
       {db.demoBlocked && (
-        <div className="fixed bottom-6 left-4 right-4 z-50 max-w-sm mx-auto bg-brand-purple text-brand-bg text-sm font-semibold rounded-2xl px-5 py-3.5 text-center shadow-xl shadow-brand-purple/30 animate-fade-in">
+        <div className="fixed bottom-6 left-4 right-4 z-50 max-w-sm mx-auto bg-brand-purple text-brand-bg text-sm font-semibold rounded-2xl px-5 py-3.5 text-center shadow-xl shadow-brand-purple/30">
           🔒 Crea tu cuenta para gestionar tus finanzas ·{" "}
-          <a href="/auth" className="underline underline-offset-2 font-black">Registrarse</a>
+          <button onClick={db.logout} className="underline underline-offset-2 font-black">
+            Registrarse
+          </button>
         </div>
       )}
     </div>

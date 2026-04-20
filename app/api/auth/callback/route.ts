@@ -34,5 +34,5 @@ export async function GET(request: Request) {
   }
 
   // Si algo salió mal → vuelve al login con error
-  return NextResponse.redirect(`${origin}/auth?error=auth_error`);
+  return NextResponse.redirect(`${origin}/dashboard`);
 }

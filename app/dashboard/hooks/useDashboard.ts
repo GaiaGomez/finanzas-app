@@ -287,7 +287,7 @@ export function useDashboard({
 
   async function logout() {
     await supabase.auth.signOut();
-    window.location.href = "/auth";
+    window.location.href = "/dashboard";
   }
 
   return {
