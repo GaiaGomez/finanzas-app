@@ -12,10 +12,12 @@ export default function AuthPage() {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [nombre, setNombre]     = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [sent, setSent]         = useState(false);
-  const [error, setError]       = useState("");
-  const [success, setSuccess]   = useState("");
+  const [loading, setLoading]     = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [sent, setSent]           = useState(false);
+  const [error, setError]         = useState("");
+  const [heroError, setHeroError] = useState("");
+  const [success, setSuccess]     = useState("");
 
   function reset() { setError(""); setSuccess(""); setSent(false); }
 
@@ -87,13 +89,19 @@ export default function AuthPage() {
     if (error) { setError(parseAuthError(error)); setLoading(false); }
   }
 
-  async function handleDemo() {
-    setLoading(true); reset();
+  async function handleDemo(source: "hero" | "form" = "form") {
+    setDemoLoading(true);
+    if (source === "hero") setHeroError(""); else { reset(); }
     const { error } = await supabase.auth.signInWithPassword({
       email: DEMO_EMAIL,
       password: DEMO_PASSWORD,
     });
-    if (error) { setError("No se pudo cargar el demo. Intenta de nuevo."); setLoading(false); return; }
+    if (error) {
+      const msg = "No se pudo cargar el demo. Intenta de nuevo.";
+      if (source === "hero") setHeroError(msg); else setError(msg);
+      setDemoLoading(false);
+      return;
+    }
     window.location.href = "/dashboard";
   }
 
@@ -142,14 +150,20 @@ export default function AuthPage() {
               Comenzar gratis
             </a>
             <button
-              onClick={handleDemo}
-              disabled={loading}
+              onClick={() => handleDemo("hero")}
+              disabled={demoLoading}
               className="px-8 py-3.5 border border-brand-border text-white font-bold rounded-xl text-sm hover:border-brand-purple/60 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              <span className="text-base leading-none">▶</span>
-              Explorar demo
+              {demoLoading
+                ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <span className="text-base leading-none">▶</span>
+              }
+              {demoLoading ? "Cargando…" : "Explorar demo"}
             </button>
           </div>
+          {heroError && (
+            <p className="text-brand-red text-xs text-center">{heroError}</p>
+          )}
 
           {/* Dashboard mockup placeholder */}
           <div className="w-full max-w-3xl mt-4 rounded-2xl border border-brand-border bg-brand-card overflow-hidden shadow-2xl">
@@ -339,10 +353,13 @@ export default function AuthPage() {
               <span className="text-brand-muted text-xs">¿solo quieres explorar?</span>
               <div className="flex-1 h-px bg-brand-border"/>
             </div>
-            <button onClick={handleDemo} disabled={loading}
+            <button onClick={() => handleDemo("form")} disabled={demoLoading}
               className="w-full py-2.5 rounded-xl border border-brand-border text-brand-muted text-sm font-semibold hover:border-brand-purple/50 hover:text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-              <span className="text-base leading-none">▶</span>
-              Explorar demo
+              {demoLoading
+                ? <span className="w-4 h-4 border-2 border-brand-muted/30 border-t-brand-muted rounded-full animate-spin" />
+                : <span className="text-base leading-none">▶</span>
+              }
+              {demoLoading ? "Cargando…" : "Explorar demo"}
             </button>
           </div>
         </div>
