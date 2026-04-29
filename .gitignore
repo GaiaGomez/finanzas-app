@@ -1,9 +1,15 @@
 node_modules/
 .next/
+out/
 .env
 .env.local
-.DS_Store
-.vercel
+.env*.local
+.vercel/
 tsconfig.tsbuildinfo
+coverage/
+test-results/
+playwright-report/
+.DS_Store
 public/sw.js
 public/workbox-*.js
+.claude/
