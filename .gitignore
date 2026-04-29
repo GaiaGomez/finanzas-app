@@ -13,3 +13,6 @@ playwright-report/
 public/sw.js
 public/workbox-*.js
 .claude/
+
+# Editor
+.vscode/
