@@ -1,5 +1,5 @@
 import { fmtCOP, getPeriodoLabel } from "@/lib/utils";
-import { INPUT_CLS } from "@/lib/constants";
+import { INPUT_CLS } from "@/lib/ui/classes";
 import type { Ingreso } from "@/types";
 
 interface Props {

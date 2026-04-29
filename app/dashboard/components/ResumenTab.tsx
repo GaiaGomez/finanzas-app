@@ -1,5 +1,5 @@
 import { fmtCOP, getPeriodoLabel, COLOR_CAT } from "@/lib/utils";
-import { LIMITE_VARIABLES_PCT } from "@/lib/constants";
+import { LIMITE_VARIABLES_PCT } from "@/lib/finance/constants";
 import Bar from "@/components/ui/Bar";
 import Dot from "@/components/ui/Dot";
 import type { GastoFijo, GastoVariable } from "@/types";

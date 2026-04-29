@@ -1,5 +1,6 @@
 import { fmtCOP, COLOR_CAT } from "@/lib/utils";
-import { CATS_FIJOS, INPUT_CLS } from "@/lib/constants";
+import { CATS_FIJOS } from "@/lib/finance/categories";
+import { INPUT_CLS } from "@/lib/ui/classes";
 import Bar from "@/components/ui/Bar";
 import Dot from "@/components/ui/Dot";
 import Editable from "@/components/ui/Editable";

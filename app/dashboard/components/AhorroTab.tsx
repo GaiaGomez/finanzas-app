@@ -1,5 +1,5 @@
 import { fmtCOP } from "@/lib/utils";
-import { INPUT_CLS } from "@/lib/constants";
+import { INPUT_CLS } from "@/lib/ui/classes";
 import Bar from "@/components/ui/Bar";
 import Editable from "@/components/ui/Editable";
 import type { MetaAhorro, AbonoMeta } from "@/types";

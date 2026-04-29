@@ -1,5 +1,7 @@
 import { fmtCOP, COLOR_CAT } from "@/lib/utils";
-import { CATS_VARIABLES, INPUT_CLS, LIMITE_VARIABLES_PCT } from "@/lib/constants";
+import { CATS_VARIABLES } from "@/lib/finance/categories";
+import { LIMITE_VARIABLES_PCT } from "@/lib/finance/constants";
+import { INPUT_CLS } from "@/lib/ui/classes";
 import Bar from "@/components/ui/Bar";
 import Dot from "@/components/ui/Dot";
 import Editable from "@/components/ui/Editable";

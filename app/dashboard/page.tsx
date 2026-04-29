@@ -34,6 +34,14 @@ export default async function DashboardPage() {
     supabase.from("abonos_meta").select("*").eq("user_id", user.id).order("fecha", { ascending: false }),
   ]);
 
+  const queryErrors = [
+    fijosRes.error, varsRes.error, ingresosRes.error, deudasRes.error,
+    abonosRes.error, metasRes.error, abonosMetaRes.error,
+  ].filter(Boolean);
+  if (queryErrors.length > 0) {
+    console.error("[dashboard] Supabase query errors:", queryErrors.map(e => e!.message));
+  }
+
   return (
     <DashboardClient
       userId={user.id}

@@ -3,6 +3,10 @@
 import { useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase";
 import { getPeriodo, prevPeriodo } from "@/lib/utils";
+import {
+  calcTotalIngresos, calcGastadoFijos, calcTotalFijos,
+  calcTotalVars, calcTotalAbonos, calcGastado, calcDisponible, calcPct, calcCats,
+} from "@/lib/finance/calculations";
 import type { GastoFijo, GastoVariable, Ingreso, Deuda, Abono, MetaAhorro, AbonoMeta } from "@/types";
 
 export type Tab = "fijos" | "variables" | "deudas" | "resumen" | "ahorro";
@@ -68,15 +72,15 @@ export function useDashboard({
   const [expandidaMeta,  setExpandidaMeta]  = useState<string | null>(null);
 
   // ── CÁLCULOS ──
-  const totalIngresos = ingresos.reduce((s, i) => s + i.monto, 0);
-  const gastadoFijos  = fijos.filter(g => g.pagado).reduce((s, g) => s + g.monto, 0);
-  const totalFijos    = fijos.reduce((s, g) => s + g.monto, 0);
-  const totalVars     = vars.reduce((s, g) => s + g.monto, 0);
-  const totalAbonos   = abonos.filter(a => a.fecha?.startsWith(periodo)).reduce((s, a) => s + a.monto, 0);
-  const gastado       = gastadoFijos + totalVars + totalAbonos;
-  const disponible    = totalIngresos - gastado;
-  const pct           = totalIngresos > 0 ? Math.min((gastado / totalIngresos) * 100, 100) : 0;
-  const cats          = [...new Set(fijos.map(g => g.categoria))];
+  const totalIngresos = calcTotalIngresos(ingresos);
+  const gastadoFijos  = calcGastadoFijos(fijos);
+  const totalFijos    = calcTotalFijos(fijos);
+  const totalVars     = calcTotalVars(vars);
+  const totalAbonos   = calcTotalAbonos(abonos, periodo);
+  const gastado       = calcGastado(gastadoFijos, totalVars, totalAbonos);
+  const disponible    = calcDisponible(totalIngresos, gastado);
+  const pct           = calcPct(gastado, totalIngresos);
+  const cats          = calcCats(fijos);
 
   // ── CAMBIO DE PERIODO ──
   async function cambiarPeriodo(p: string) {

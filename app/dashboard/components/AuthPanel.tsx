@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase";
-import { INPUT_CLS_AUTH as INPUT_CLS } from "@/lib/constants";
+import { INPUT_CLS_AUTH as INPUT_CLS } from "@/lib/ui/classes";
 
 type Modo = "login" | "registro" | "magic";
 

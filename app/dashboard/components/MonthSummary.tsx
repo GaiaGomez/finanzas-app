@@ -1,5 +1,5 @@
 import { fmtCOP } from "@/lib/utils";
-import { ALERTA_ROJA, ALERTA_AMBER } from "@/lib/constants";
+import { ALERTA_ROJA, ALERTA_AMBER } from "@/lib/finance/constants";
 import Bar from "@/components/ui/Bar";
 import type { GastoFijo, GastoVariable, Ingreso, Abono } from "@/types";
 
