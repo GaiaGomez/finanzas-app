@@ -32,7 +32,7 @@ export default function FijosTab({
       {/* Resumen de pago */}
       <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
         <div className="flex justify-between text-xs mb-2">
-          <span className="text-[#94a3b8]">Fijos pagados</span>
+          <span className="text-brand-subtle">Fijos pagados</span>
           <span className="font-mono text-brand-green">{fijos.filter(g => g.pagado).length}/{fijos.length}</span>
         </div>
         <Bar val={gastadoFijos} total={totalFijos} color="#4ade80" />
@@ -49,18 +49,18 @@ export default function FijosTab({
           <div className="flex items-center gap-2 mt-1 mb-1">
             <Dot cat={cat} />
             <span className="text-[10px] font-bold text-brand-muted uppercase tracking-widest">{cat}</span>
-            <span className="text-[10px] text-[#2a2440] ml-auto">
+            <span className="text-[10px] text-brand-overlay ml-auto">
               {fmtCOP(fijos.filter(g => g.categoria === cat).reduce((s, g) => s + g.monto, 0))}
             </span>
           </div>
           {fijos.filter(g => g.categoria === cat).map(g => (
             <div key={g.id}
               className={`bg-brand-card border rounded-2xl p-3.5 mb-2 flex items-center gap-3 transition-all ${
-                g.pagado ? "opacity-50 border-brand-border" : "border-[#2a2440]"
+                g.pagado ? "opacity-50 border-brand-border" : "border-brand-overlay"
               }`}>
               <button onClick={() => onToggle(g.id, g.pagado)}
                 className={`w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center border-2 transition-all ${
-                  g.pagado ? "bg-brand-green border-brand-green" : "border-[#2a2440] bg-transparent"
+                  g.pagado ? "bg-brand-green border-brand-green" : "border-brand-overlay bg-transparent"
                 }`}>
                 {g.pagado && <span className="text-brand-bg text-xs font-black">✓</span>}
               </button>
@@ -77,7 +77,7 @@ export default function FijosTab({
                 onSave={v => onEdit(g.id, "monto", v as number)}
                 className="text-sm font-bold font-mono text-white" />
               <button onClick={() => onDelete(g.id)}
-                className="text-[#2a2440] hover:text-brand-red text-lg leading-none transition-colors ml-1">×</button>
+                className="text-brand-overlay hover:text-brand-red text-lg leading-none transition-colors ml-1">×</button>
             </div>
           ))}
         </div>
@@ -109,7 +109,7 @@ export default function FijosTab({
                 {saving ? "Guardando…" : "Agregar"}
               </button>
               <button onClick={() => setFormFijo(false)}
-                className="bg-[#1e1b2e] text-brand-muted font-semibold px-4 py-2.5 rounded-xl text-sm">
+                className="bg-brand-border text-brand-muted font-semibold px-4 py-2.5 rounded-xl text-sm">
                 Cancelar
               </button>
             </div>
@@ -117,7 +117,7 @@ export default function FijosTab({
         </div>
       ) : (
         <button onClick={() => setFormFijo(true)}
-          className="w-full py-3 rounded-2xl border border-dashed border-[#2a2440] text-brand-muted text-sm font-semibold hover:border-brand-purple hover:text-brand-purple transition-colors">
+          className="w-full py-3 rounded-2xl border border-dashed border-brand-overlay text-brand-muted text-sm font-semibold hover:border-brand-purple hover:text-brand-purple transition-colors">
           + Agregar gasto fijo
         </button>
       )}

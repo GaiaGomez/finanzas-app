@@ -81,7 +81,7 @@ export default function AuthPanel({ initialTab = "login" }: Props) {
       <div className="bg-brand-card border border-brand-border rounded-2xl p-6 flex flex-col gap-4">
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-[#1a1730] rounded-xl p-1">
+        <div className="flex gap-1 bg-brand-surface rounded-xl p-1">
           {([["login","Entrar"],["registro","Registro"],["magic","Magic Link"]] as const).map(([m, l]) => (
             <button key={m} onClick={() => { setModo(m); reset(); }}
               className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${

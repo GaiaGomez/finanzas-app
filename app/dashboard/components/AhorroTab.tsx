@@ -45,7 +45,7 @@ export default function AhorroTab({
       {metas.length > 0 && (
         <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-xs text-[#94a3b8]">Progreso total</span>
+            <span className="text-xs text-brand-subtle">Progreso total</span>
             <span className="text-lg font-extrabold font-mono" style={{ color: SKY }}>
               {fmtCOP(totalActual)}
             </span>
@@ -113,7 +113,7 @@ export default function AhorroTab({
                 </span>
                 <button
                   onClick={() => onDelete(meta.id)}
-                  className="text-[#2a2440] hover:text-brand-red text-lg leading-none transition-colors">
+                  className="text-brand-overlay hover:text-brand-red text-lg leading-none transition-colors">
                   ×
                 </button>
               </div>
@@ -151,7 +151,7 @@ export default function AhorroTab({
                       </button>
                       <button
                         onClick={() => { setAbonoMeta(null); setNAbonoMeta({ monto: "", nota: "" }); }}
-                        className="px-3 py-2 rounded-xl bg-[#1e1b2e] text-brand-muted text-xs flex-shrink-0">
+                        className="px-3 py-2 rounded-xl bg-brand-border text-brand-muted text-xs flex-shrink-0">
                         ×
                       </button>
                     </div>
@@ -198,7 +198,7 @@ export default function AhorroTab({
                           <span className="text-brand-muted">{a.fecha}</span>
                           <button
                             onClick={() => onDelAbono(a.id)}
-                            className="text-[#2a2440] hover:text-brand-red text-base leading-none transition-colors">
+                            className="text-brand-overlay hover:text-brand-red text-base leading-none transition-colors">
                             ×
                           </button>
                         </div>
@@ -242,7 +242,7 @@ export default function AhorroTab({
               </button>
               <button
                 onClick={() => setFormMeta(false)}
-                className="bg-[#1e1b2e] text-brand-muted font-semibold px-4 py-2.5 rounded-xl text-sm">
+                className="bg-brand-border text-brand-muted font-semibold px-4 py-2.5 rounded-xl text-sm">
                 Cancelar
               </button>
             </div>

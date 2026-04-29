@@ -117,7 +117,7 @@ export default function DeudasTab({
                   ↑ Aumentar
                 </button>
                 <button onClick={() => setExpandida(expandida === d.id ? null : d.id)}
-                  className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#1a1730] text-brand-muted hover:text-white transition-colors">
+                  className="flex-1 py-2 rounded-xl text-xs font-bold bg-brand-surface text-brand-muted hover:text-white transition-colors">
                   {expandida === d.id ? "Ocultar" : `Abonos (${misAbonos.length})`}
                 </button>
                 <button onClick={() => onDelete(d.id)}
@@ -126,7 +126,7 @@ export default function DeudasTab({
 
               {/* Form aumentar */}
               {aumentoAbierto === d.id && (
-                <div className="mt-3 p-3 bg-[#1a1730] rounded-xl border border-brand-yellow/20">
+                <div className="mt-3 p-3 bg-brand-surface rounded-xl border border-brand-yellow/20">
                   <p className="text-[10px] text-brand-yellow font-bold mb-2">Aumentar deuda</p>
                   <div className="flex gap-2 mb-2">
                     <input type="number" value={nAumento.monto}
@@ -144,14 +144,14 @@ export default function DeudasTab({
                       {saving ? "Guardando…" : "Confirmar aumento"}
                     </button>
                     <button onClick={() => setAumentoAbierto(null)}
-                      className="px-4 py-2 rounded-xl bg-[#13101f] text-brand-muted text-xs">Cancelar</button>
+                      className="px-4 py-2 rounded-xl bg-brand-card text-brand-muted text-xs">Cancelar</button>
                   </div>
                 </div>
               )}
 
               {/* Form abonar */}
               {abonoAbierto === d.id && (
-                <div className="mt-3 p-3 bg-[#1a1730] rounded-xl border border-brand-purple/20">
+                <div className="mt-3 p-3 bg-brand-surface rounded-xl border border-brand-purple/20">
                   <p className="text-[10px] text-brand-purple font-bold mb-2">Registrar abono</p>
                   <div className="flex gap-2 mb-2">
                     <input type="number" value={nAbono.monto}
@@ -169,7 +169,7 @@ export default function DeudasTab({
                       {saving ? "Guardando…" : "Guardar abono"}
                     </button>
                     <button onClick={() => setAbonoAbierto(null)}
-                      className="px-4 py-2 rounded-xl bg-[#13101f] text-brand-muted text-xs">Cancelar</button>
+                      className="px-4 py-2 rounded-xl bg-brand-card text-brand-muted text-xs">Cancelar</button>
                   </div>
                 </div>
               )}
@@ -190,7 +190,7 @@ export default function DeudasTab({
                       </p>
                     </div>
                     <button onClick={() => onDelAbono(a.id)}
-                      className="text-[#2a2440] hover:text-brand-red text-lg leading-none transition-colors">×</button>
+                      className="text-brand-overlay hover:text-brand-red text-lg leading-none transition-colors">×</button>
                   </div>
                 ))}
               </div>
@@ -218,13 +218,13 @@ export default function DeudasTab({
                 {saving ? "Guardando…" : "Agregar deuda"}
               </button>
               <button onClick={() => setFormDeuda(false)}
-                className="bg-[#1e1b2e] text-brand-muted font-semibold px-4 py-2.5 rounded-xl text-sm">Cancelar</button>
+                className="bg-brand-border text-brand-muted font-semibold px-4 py-2.5 rounded-xl text-sm">Cancelar</button>
             </div>
           </div>
         </div>
       ) : (
         <button onClick={() => setFormDeuda(true)}
-          className="w-full py-3 rounded-2xl border border-dashed border-[#2a2440] text-brand-muted text-sm font-semibold hover:border-brand-red hover:text-brand-red transition-colors">
+          className="w-full py-3 rounded-2xl border border-dashed border-brand-overlay text-brand-muted text-sm font-semibold hover:border-brand-red hover:text-brand-red transition-colors">
           + Agregar deuda
         </button>
       )}

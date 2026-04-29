@@ -37,11 +37,11 @@ export default function ResumenTab({
           { label: "Fijos pagados",   val: gastadoFijos,              color: "text-brand-red",    signo: "−",   border: true },
           { label: "Gastos variables",val: totalVars,                 color: "text-brand-yellow", signo: "−",   border: true },
           { label: "Abonos a deudas", val: totalAbonos,               color: "text-brand-red",    signo: "−",   border: true },
-          { label: "Fijos pendientes",val: totalFijos - gastadoFijos, color: "text-[#94a3b8]",    signo: "(−)", border: false, dim: true },
+          { label: "Fijos pendientes",val: totalFijos - gastadoFijos, color: "text-brand-subtle",  signo: "(−)", border: false, dim: true },
           { label: "Disponible real", val: disponible,                color: disponible >= 0 ? "text-brand-purple" : "text-brand-red", signo: "=", border: false, bold: true },
         ].map((r, i) => (
           <div key={i} className={`flex justify-between items-center py-2.5 ${r.border ? "border-b border-brand-border" : ""} ${r.dim ? "opacity-40" : ""}`}>
-            <span className={`text-sm text-[#94a3b8] ${r.bold ? "font-bold" : ""} ${r.dim ? "italic" : ""}`}>{r.label}</span>
+            <span className={`text-sm text-brand-subtle ${r.bold ? "font-bold" : ""} ${r.dim ? "italic" : ""}`}>{r.label}</span>
             <span className={`font-mono text-sm font-extrabold ${r.color}`}>{r.signo} {fmtCOP(r.val)}</span>
           </div>
         ))}

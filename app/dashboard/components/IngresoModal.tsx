@@ -55,7 +55,7 @@ export default function IngresoModal({
             </button>
             <button
               onClick={onClose}
-              className="px-4 py-3 rounded-xl bg-[#1e1b2e] text-brand-muted text-sm"
+              className="px-4 py-3 rounded-xl bg-brand-border text-brand-muted text-sm"
             >
               Cancelar
             </button>
@@ -75,7 +75,7 @@ export default function IngresoModal({
                 </div>
                 <button
                   onClick={() => onDelete(i.id)}
-                  className="text-[#2a2440] hover:text-brand-red text-lg leading-none ml-3"
+                  className="text-brand-overlay hover:text-brand-red text-lg leading-none ml-3"
                 >
                   ×
                 </button>

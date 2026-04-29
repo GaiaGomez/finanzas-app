@@ -34,13 +34,13 @@ export default function Editable({ value, tipo = "text", opciones = [], onSave, 
   }
   useEffect(() => { if (on) (inputRef.current ?? selectRef.current)?.focus(); }, [on]);
 
-  const inputClass = "bg-[#1a1730] border border-brand-purple rounded-lg px-2 py-0.5 text-white outline-none font-inherit";
+  const inputClass = "bg-brand-surface border border-brand-purple rounded-lg px-2 py-0.5 text-white outline-none font-inherit";
 
   if (!on) return (
     <span
       onClick={abrir}
       title="Click para editar"
-      className={`cursor-text border-b border-dashed border-[#2a2440] pb-px ${className}`}
+      className={`cursor-text border-b border-dashed border-brand-overlay pb-px ${className}`}
       style={style}
     >
       {tipo === "number"

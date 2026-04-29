@@ -51,12 +51,12 @@ export default function DashboardHeader({
           <span className="text-brand-bg font-black text-sm leading-none">F</span>
         </div>
         <button onClick={onPrevMes}
-          className="w-7 h-7 rounded-lg bg-[#1a1730] text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">
+          className="w-7 h-7 rounded-lg bg-brand-surface text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">
           ‹
         </button>
         <h1 className="text-base font-extrabold tracking-tight">{getPeriodoLabel(periodo)}</h1>
         <button onClick={onNextMes}
-          className="w-7 h-7 rounded-lg bg-[#1a1730] text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">
+          className="w-7 h-7 rounded-lg bg-brand-surface text-brand-muted hover:text-white flex items-center justify-center text-sm transition-colors">
           ›
         </button>
       </div>

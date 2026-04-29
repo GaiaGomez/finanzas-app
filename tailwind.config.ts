@@ -8,6 +8,7 @@ const config: Config = {
           purple: "#a78bfa", green: "#4ade80", yellow: "#fbbf24",
           red: "#f87171", bg: "#080611", card: "#0f0d1a",
           border: "#1e1b2e", muted: "#64748b",
+          surface: "#1a1730", overlay: "#2a2440", subtle: "#94a3b8",
         },
       },
       fontFamily: {

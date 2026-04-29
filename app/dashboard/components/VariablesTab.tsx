@@ -46,7 +46,7 @@ export default function VariablesTab({
       {/* Barra de variables vs límite */}
       <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs text-[#94a3b8]">Total variables</span>
+          <span className="text-xs text-brand-subtle">Total variables</span>
           <span className="text-lg font-extrabold font-mono text-brand-yellow">{fmtCOP(totalVars)}</span>
         </div>
         <Bar val={totalVars} total={Math.max(totalIngresos * LIMITE_VARIABLES_PCT, 1)} color="#fbbf24" />
@@ -81,7 +81,7 @@ export default function VariablesTab({
                 {saving ? "Guardando…" : "Registrar"}
               </button>
               <button onClick={() => setFormVar(false)}
-                className="bg-[#1e1b2e] text-brand-muted font-semibold px-4 py-2.5 rounded-xl text-sm">
+                className="bg-brand-border text-brand-muted font-semibold px-4 py-2.5 rounded-xl text-sm">
                 Cancelar
               </button>
             </div>
@@ -89,7 +89,7 @@ export default function VariablesTab({
         </div>
       ) : (
         <button onClick={() => setFormVar(true)}
-          className="w-full py-3 rounded-2xl border border-dashed border-[#2a2440] text-brand-muted text-sm font-semibold hover:border-brand-yellow hover:text-brand-yellow transition-colors">
+          className="w-full py-3 rounded-2xl border border-dashed border-brand-overlay text-brand-muted text-sm font-semibold hover:border-brand-yellow hover:text-brand-yellow transition-colors">
           + Registrar gasto variable
         </button>
       )}
@@ -120,7 +120,7 @@ export default function VariablesTab({
             onSave={v => onEdit(g.id, "monto", v as number)}
             className="text-sm font-bold font-mono text-brand-yellow" />
           <button onClick={() => onDelete(g.id)}
-            className="text-[#2a2440] hover:text-brand-red text-lg leading-none transition-colors ml-1">×</button>
+            className="text-brand-overlay hover:text-brand-red text-lg leading-none transition-colors ml-1">×</button>
         </div>
       ))}
     </div>
