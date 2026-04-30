@@ -13,12 +13,13 @@ interface Props {
   onLogin: () => void;
   onRegister: () => void;
   onLogout: () => void;
+  onDemo?: () => void;
 }
 
 export default function DashboardHeader({
   hasSession, periodo,
   onPrevMes, onNextMes, onOpenIngreso,
-  onAbout, onLogin, onRegister, onLogout,
+  onAbout, onLogin, onRegister, onLogout, onDemo,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -80,6 +81,15 @@ export default function DashboardHeader({
             <div className="absolute right-0 top-[calc(100%+6px)] z-50 min-w-[170px] rounded-xl border border-white/10 bg-[#252547] p-1">
               {isGuest ? (
                 <>
+                  {onDemo && (
+                    <>
+                      <button onClick={close(onDemo)}
+                        className="block w-full text-left px-3.5 py-2.5 text-[13px] font-semibold text-brand-purple rounded-md hover:bg-white/[0.07] transition-colors">
+                        Abrir demo
+                      </button>
+                      <div className="h-px bg-white/[0.08] my-0.5 mx-1.5" />
+                    </>
+                  )}
                   <button onClick={close(onLogin)}
                     className="block w-full text-left px-3.5 py-2.5 text-[13px] text-white rounded-md hover:bg-white/[0.07] transition-colors">
                     Iniciar sesión

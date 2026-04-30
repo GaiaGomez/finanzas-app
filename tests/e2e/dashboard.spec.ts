@@ -62,3 +62,12 @@ test.describe("Dashboard — apertura de modales", () => {
     await expect(page.getByPlaceholder("Monto")).toBeVisible();
   });
 });
+
+test.describe("Dashboard — demo login", () => {
+  test("muestra el botón 'Abrir demo' en el menú cuando las credenciales demo están configuradas", async ({ page }) => {
+    test.skip(!process.env.NEXT_PUBLIC_DEMO_EMAIL, "Credenciales demo no configuradas");
+    await page.goto("/dashboard");
+    await page.getByRole("button", { name: "Menú" }).click();
+    await expect(page.getByRole("button", { name: "Abrir demo" })).toBeVisible();
+  });
+});

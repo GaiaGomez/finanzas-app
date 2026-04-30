@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createClient } from "@/lib/supabase";
 import DashboardHeader from "./components/DashboardHeader";
 import AboutModal from "./components/AboutModal";
 import AuthPanel from "./components/AuthPanel";
@@ -31,12 +32,48 @@ interface Props {
 
 // ── Componente principal ───────────────────────────────────────────────────
 
+const DEMO_EMAIL    = process.env.NEXT_PUBLIC_DEMO_EMAIL;
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD;
+
 export default function DashboardClient(props: Props) {
-  const [showAbout,  setShowAbout]  = useState(false);
-  const [authModal,  setAuthModal]  = useState<AuthTab | null>(null);
+  const [showAbout,   setShowAbout]   = useState(false);
+  const [authModal,   setAuthModal]   = useState<AuthTab | null>(null);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError,   setDemoError]   = useState<string | null>(null);
+
+  async function handleDemo() {
+    if (!DEMO_EMAIL || !DEMO_PASSWORD) return;
+    setDemoLoading(true);
+    setDemoError(null);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD });
+    if (error) {
+      setDemoError("No se pudo abrir el demo. Intenta de nuevo.");
+      setDemoLoading(false);
+      return;
+    }
+    window.location.href = "/dashboard";
+  }
 
   return (
     <>
+      {/* ══ DEMO LOADING OVERLAY ══ */}
+      {demoLoading && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
+          <div className="bg-brand-card border border-brand-border rounded-2xl px-6 py-4 text-white text-sm font-semibold">
+            Abriendo demo…
+          </div>
+        </div>
+      )}
+
+      {/* ══ DEMO ERROR BANNER ══ */}
+      {demoError && (
+        <div className="fixed top-4 left-4 right-4 z-50 max-w-xl mx-auto bg-red-900/90 border border-brand-red text-white text-sm rounded-xl px-4 py-3 flex items-start gap-3">
+          <span className="flex-1">{demoError}</span>
+          <button onClick={() => setDemoError(null)} className="text-white/70 hover:text-white text-lg leading-none flex-shrink-0">×</button>
+        </div>
+      )}
+
       {/* ══ MODAL AUTH ══ */}
       {authModal !== null && (
         <div
@@ -65,6 +102,7 @@ export default function DashboardClient(props: Props) {
         onAbout={() => setShowAbout(true)}
         onLogin={() => setAuthModal("login")}
         onRegister={() => setAuthModal("registro")}
+        onDemo={DEMO_EMAIL && DEMO_PASSWORD ? handleDemo : undefined}
       />
     </>
   );
@@ -76,9 +114,10 @@ interface DashboardProps extends Props {
   onAbout: () => void;
   onLogin: () => void;
   onRegister: () => void;
+  onDemo?: () => void;
 }
 
-function Dashboard({ onAbout, onLogin, onRegister, ...dashboardProps }: DashboardProps) {
+function Dashboard({ onAbout, onLogin, onRegister, onDemo, ...dashboardProps }: DashboardProps) {
   const db = useDashboard(dashboardProps);
 
   return (
@@ -120,6 +159,7 @@ function Dashboard({ onAbout, onLogin, onRegister, ...dashboardProps }: Dashboar
               onLogin={onLogin}
               onRegister={onRegister}
               onLogout={db.logout}
+              onDemo={onDemo}
             />
             <MonthSummary
               periodo={db.periodo}
