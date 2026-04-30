@@ -13,6 +13,12 @@
 
 ---
 
+## Screenshots
+
+Screenshots pending — see the [live demo](https://fyntt.vercel.app) to explore the app.
+
+---
+
 ## Features
 
 - **Monthly budget periods** — navigate months freely; fixed expenses auto-copy to new periods
@@ -23,7 +29,7 @@
 - **Savings goals** — set targets, log deposits with notes, and track history per goal
 - **Financial summary** — real-time breakdown of income vs. committed vs. spent vs. available
 - **Auth** — Magic Link and email/password via Supabase; SSR session handling
-- **PWA** — installable on mobile devices with offline shell support
+- **PWA** — installable on mobile devices with offline shell support (icons pending, see [Known Limitations](#known-limitations))
 - **Optimistic UI** — every write updates the UI instantly and rolls back silently on DB error
 
 ---
@@ -33,15 +39,17 @@
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 14 (App Router) |
-| Language | TypeScript 5 — strict mode, zero `any` |
+| Language | TypeScript 5 — strict mode, strict typed production code |
 | Database | Supabase (PostgreSQL) |
 | Auth | Supabase Auth (Magic Link + email/password) |
 | Styling | Tailwind CSS + custom design tokens |
 | Fonts | DM Sans + DM Mono (self-hosted via next/font) |
-| PWA | next-pwa |
+| PWA | next-pwa (enabled in production; disabled in CI via `DISABLE_PWA=true`) |
 | Unit/Integration tests | Vitest + React Testing Library |
 | E2E tests | Playwright |
+| CI | GitHub Actions (lint → test → type-check → build) |
 | Deploy | Vercel |
+| Node.js | 20 (pinned via `.nvmrc`) |
 
 ---
 
@@ -50,7 +58,7 @@
 ```
 fynt/
 ├── app/
-│   ├── api/auth/                # Supabase auth callback handler
+│   ├── api/auth/callback/       # Supabase auth callback handler
 │   ├── dashboard/
 │   │   ├── components/          # FijosTab, VariablesTab, DeudasTab,
 │   │   │                        # AhorroTab, ResumenTab, MonthSummary,
@@ -58,12 +66,21 @@ fynt/
 │   │   ├── hooks/
 │   │   │   └── useDashboard.ts  # Central state hook — all CRUD + derived values
 │   │   ├── DashboardClient.tsx  # Client entry point, tab router
+│   │   ├── error.tsx
 │   │   └── page.tsx             # Server Component — SSR data fetch
+│   ├── globals.css
 │   ├── layout.tsx
 │   └── page.tsx
+├── components/
+│   └── ui/                      # Bar, Dot, Editable — shared primitives
 ├── lib/
-│   ├── utils.ts                 # Pure functions: fmtCOP, period math, color map
-│   ├── constants.ts             # Categories, alert thresholds, shared input styles
+│   ├── finance/
+│   │   ├── calculations.ts      # Pure derived-value functions (calcGastado, calcPct…)
+│   │   ├── categories.ts        # CATS_FIJOS, CATS_VARIABLES arrays
+│   │   └── constants.ts         # LIMITE_VARIABLES_PCT, ALERTA_ROJA, ALERTA_AMBER
+│   ├── ui/
+│   │   └── classes.ts           # INPUT_CLS, INPUT_CLS_AUTH shared Tailwind strings
+│   ├── utils.ts                 # fmtCOP, period math (nextPeriodo, prevPeriodo…), COLOR_CAT
 │   ├── supabase.ts              # Browser Supabase client
 │   ├── supabase-server.ts       # Server Supabase client (SSR cookies)
 │   └── env.ts                   # Environment variable validation
@@ -71,14 +88,19 @@ fynt/
 │   └── index.ts                 # Domain types: GastoFijo, Deuda, MetaAhorro, AbonoMeta…
 ├── tests/
 │   ├── unit/
-│   │   └── utils.test.ts        # 29 tests — pure function coverage
+│   │   ├── utils.test.ts        # 24 tests — fmtCOP, period helpers, edge cases
+│   │   └── calculations.test.ts # 23 tests — calc functions, boundary conditions
 │   ├── integration/
-│   │   └── useDashboard.test.ts # 14 tests — hook calculations + optimistic updates
+│   │   └── useDashboard.test.ts # 19 tests — hook calculations + optimistic updates
 │   ├── e2e/
-│   │   └── dashboard.spec.ts    # 7 tests — navigation, modals, auth flow
+│   │   └── dashboard.spec.ts    # Playwright — navigation, modals, auth flow
 │   └── setup.ts
 ├── supabase/
-│   └── schema.sql               # Full DB schema with RLS policies
+│   └── schema.sql               # Full DB schema with RLS policies (requires fresh DB)
+├── public/
+│   └── manifest.json            # PWA manifest (icons not yet added)
+├── .github/
+│   └── workflows/ci.yml         # GitHub Actions CI
 ├── middleware.ts                 # Session refresh on every request
 ├── vitest.config.ts
 └── playwright.config.ts
@@ -86,11 +108,17 @@ fynt/
 
 ---
 
+## Architecture
+
+See [docs/architecture.md](docs/architecture.md) for a full write-up of the key design decisions.
+
+---
+
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20 (see `.nvmrc`; use `nvm use` to switch)
 - A [Supabase](https://supabase.com) project with the schema applied
 
 ### Installation
@@ -98,13 +126,16 @@ fynt/
 ```bash
 git clone https://github.com/GaiaGomez/Fynt_Tu_Dinero_Bajo_Control.git
 cd Fynt_Tu_Dinero_Bajo_Control
+nvm use        # requires nvm; ensures Node 20
 npm install
 ```
 
 ### Database setup
 
-Run [`supabase/schema.sql`](supabase/schema.sql) in your Supabase project's SQL editor.  
+Run [`supabase/schema.sql`](supabase/schema.sql) in your Supabase project's SQL Editor.
 It creates all tables, RLS policies, and the trigger that provisions a user profile on signup.
+
+> **Note:** The schema is written for a clean/fresh database. `CREATE POLICY` statements are not idempotent — re-running on an existing database will fail on policy lines. Drop all tables first if you need to reset.
 
 ### Environment variables
 
@@ -130,7 +161,8 @@ npm run dev
 | Script | Description |
 |---|---|
 | `npm run dev` | Start Next.js dev server |
-| `npm run build` | Production build |
+| `npm run build` | Production build (PWA enabled) |
+| `DISABLE_PWA=true npm run build` | Build without PWA (used in CI) |
 | `npm run start` | Serve production build |
 | `npm run lint` | ESLint via `next lint` |
 | `npm run type-check` | TypeScript check without emitting |
@@ -144,44 +176,43 @@ npm run dev
 
 ## Testing
 
-**50 tests — all passing.**
+**66 tests — all passing.**
 
-| Layer | Runner | Tests | What's covered |
+| Layer | File | Tests | What's covered |
 |---|---|---|---|
-| Unit | Vitest | 29 | `fmtCOP`, `nextPeriodo`, `prevPeriodo`, `getPeriodoLabel`, `getPeriodo` — edge cases, year boundaries, round-trip invariants |
-| Integration | Vitest + RTL | 14 | `useDashboard` derived calculations (income, spent, available, pct), `toggleFijo` optimistic update and snapshot rollback, initial UI state |
-| E2E | Playwright | 7 | Dashboard load, tab navigation, empty states, guest auth menu, income modal |
+| Unit | `utils.test.ts` | 24 | `fmtCOP`, `nextPeriodo`, `prevPeriodo`, `getPeriodoLabel`, `getPeriodo` — edge cases, year boundaries, round-trip invariants |
+| Unit | `calculations.test.ts` | 23 | `calcTotalIngresos`, `calcGastadoFijos`, `calcTotalFijos`, `calcTotalVars`, `calcTotalAbonos`, `calcGastado`, `calcDisponible`, `calcPct`, `calcCats` — boundary and empty-array cases |
+| Integration | `useDashboard.test.ts` | 19 | `useDashboard` derived calculations (income, spent, available, pct), `toggleFijo` optimistic update and snapshot rollback, initial UI state |
+| E2E | `dashboard.spec.ts` | — | Dashboard load, tab navigation, empty states, guest auth menu, income modal — **not run in CI** |
 
-The integration tests mock Supabase with a chainable awaitable builder that mirrors the SDK's `PromiseLike` query API — allowing full optimistic update cycles to be tested without a real database connection.
+The integration tests mock Supabase with a chainable awaitable builder that mirrors the SDK's `PromiseLike` query API, allowing full optimistic update cycles to be tested without a real database connection.
+
+E2E tests exist but are excluded from CI. Run them locally with `npm run test:e2e`.
+
+See [docs/testing.md](docs/testing.md) for the full testing rationale.
 
 ---
 
-## Technical Decisions
+## Security
 
-**Server Components for initial data load**  
-`app/dashboard/page.tsx` fetches all 7 data sources in a single `Promise.all` before sending HTML. No client-side waterfall on first render.
+All Supabase tables enforce `auth.uid() = user_id` via Row Level Security at the DB level. The app is safe even if client-side auth checks are bypassed.
 
-**Single `useDashboard` hook as state layer**  
-All client state, derived calculations, and CRUD operations live in one hook. Components receive typed props only — no intermediate prop drilling and no global store needed at this scale.
+See [docs/security.md](docs/security.md) for details.
 
-**Optimistic updates with snapshot rollback**  
-Every mutation updates local state immediately, then awaits the DB call. On error, the pre-mutation snapshot is restored and an error banner is shown. No loading spinners for writes.
+---
 
-**`periodo` as a plain string key (`YYYY-MM`)**  
-All time-scoped tables use a text period column. String comparison is sufficient for navigation, filtering, and auto-copy logic — no date parsing complexity.
+## Known Limitations
 
-**Row Level Security on every table**  
-All Supabase tables enforce `auth.uid() = user_id` at the DB level. The app is safe even if client-side auth checks were bypassed.
-
-**`monto_actual` as a cached derived value**  
-Savings goals store the running total (`monto_actual`) alongside individual deposit records (`abonos_meta`). It's recalculated and synced on every insert/delete — avoids a `SUM` query on every render while keeping deposit history auditable.
+- **PWA icons missing** — `public/manifest.json` references `icon-192.png` and `icon-512.png`, but neither file exists. The app installs as a PWA but without a home-screen icon on iOS/Android.
+- **E2E tests not in CI** — Playwright tests are local-only; CI runs lint, unit/integration tests, type-check, and build only.
+- **Schema not idempotent** — `supabase/schema.sql` requires a clean Supabase project. Re-running on an existing database will fail on `CREATE POLICY` statements.
 
 ---
 
 ## Future Improvements
 
+- Add PWA icons (192×192 and 512×512) to enable proper home-screen installation
 - Authenticated E2E tests — add/edit/delete flows with a seeded test user
-- CI pipeline — GitHub Actions running `type-check`, `test`, and `test:e2e` on every PR
 - Monthly trend charts — spending over time per category
 - Budget alerts — push notifications for unpaid fixed expenses near month end
 - CSV / PDF export — monthly summary for personal records
