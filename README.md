@@ -140,7 +140,6 @@ Full policy table: [docs/security.md](docs/security.md)
 ## Known Limitations
 
 - **E2E tests are local-only** — CI runs lint, unit/integration tests, type-check, and build. Playwright tests require a running dev server and a browser environment.
-- **Schema is not idempotent** — `supabase/schema.sql` requires a fresh Supabase project; `CREATE POLICY` will error on a re-run against an existing database.
 
 ---
 

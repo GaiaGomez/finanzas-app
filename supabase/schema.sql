@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════
 -- SCHEMA DE LA BASE DE DATOS — corre esto en Supabase SQL Editor
 -- supabase.com → tu proyecto → SQL Editor → New query → pega y corre
--- Requiere una base de datos limpia (fresh project o tablas eliminadas).
+-- Seguro de re-ejecutar: usa IF NOT EXISTS / DROP IF EXISTS en todos los objetos.
 -- ═══════════════════════════════════════════════════════════
 
 -- 1. PERFILES DE USUARIO
@@ -14,9 +14,11 @@ create table if not exists public.perfiles (
 
 alter table public.perfiles enable row level security;
 
+drop policy if exists "usuarios ven su propio perfil" on public.perfiles;
 create policy "usuarios ven su propio perfil"
   on public.perfiles for select using (auth.uid() = id);
 
+drop policy if exists "usuarios actualizan su propio perfil" on public.perfiles;
 create policy "usuarios actualizan su propio perfil"
   on public.perfiles for update using (auth.uid() = id);
 
@@ -34,15 +36,19 @@ create table if not exists public.gastos_fijos (
 
 alter table public.gastos_fijos enable row level security;
 
+drop policy if exists "usuarios ven sus gastos fijos" on public.gastos_fijos;
 create policy "usuarios ven sus gastos fijos"
   on public.gastos_fijos for select using (auth.uid() = user_id);
 
+drop policy if exists "usuarios insertan sus gastos fijos" on public.gastos_fijos;
 create policy "usuarios insertan sus gastos fijos"
   on public.gastos_fijos for insert with check (auth.uid() = user_id);
 
+drop policy if exists "usuarios actualizan sus gastos fijos" on public.gastos_fijos;
 create policy "usuarios actualizan sus gastos fijos"
   on public.gastos_fijos for update using (auth.uid() = user_id);
 
+drop policy if exists "usuarios borran sus gastos fijos" on public.gastos_fijos;
 create policy "usuarios borran sus gastos fijos"
   on public.gastos_fijos for delete using (auth.uid() = user_id);
 
@@ -60,15 +66,19 @@ create table if not exists public.gastos_variables (
 
 alter table public.gastos_variables enable row level security;
 
+drop policy if exists "usuarios ven sus gastos variables" on public.gastos_variables;
 create policy "usuarios ven sus gastos variables"
   on public.gastos_variables for select using (auth.uid() = user_id);
 
+drop policy if exists "usuarios insertan sus gastos variables" on public.gastos_variables;
 create policy "usuarios insertan sus gastos variables"
   on public.gastos_variables for insert with check (auth.uid() = user_id);
 
+drop policy if exists "usuarios actualizan sus gastos variables" on public.gastos_variables;
 create policy "usuarios actualizan sus gastos variables"
   on public.gastos_variables for update using (auth.uid() = user_id);
 
+drop policy if exists "usuarios borran sus gastos variables" on public.gastos_variables;
 create policy "usuarios borran sus gastos variables"
   on public.gastos_variables for delete using (auth.uid() = user_id);
 
@@ -85,12 +95,15 @@ create table if not exists public.ingresos (
 
 alter table public.ingresos enable row level security;
 
+drop policy if exists "usuarios ven sus ingresos" on public.ingresos;
 create policy "usuarios ven sus ingresos"
   on public.ingresos for select using (auth.uid() = user_id);
 
+drop policy if exists "usuarios insertan sus ingresos" on public.ingresos;
 create policy "usuarios insertan sus ingresos"
   on public.ingresos for insert with check (auth.uid() = user_id);
 
+drop policy if exists "usuarios borran sus ingresos" on public.ingresos;
 create policy "usuarios borran sus ingresos"
   on public.ingresos for delete using (auth.uid() = user_id);
 
@@ -105,15 +118,19 @@ create table if not exists public.deudas (
 
 alter table public.deudas enable row level security;
 
+drop policy if exists "usuarios ven sus deudas" on public.deudas;
 create policy "usuarios ven sus deudas"
   on public.deudas for select using (auth.uid() = user_id);
 
+drop policy if exists "usuarios insertan sus deudas" on public.deudas;
 create policy "usuarios insertan sus deudas"
   on public.deudas for insert with check (auth.uid() = user_id);
 
+drop policy if exists "usuarios actualizan sus deudas" on public.deudas;
 create policy "usuarios actualizan sus deudas"
   on public.deudas for update using (auth.uid() = user_id);
 
+drop policy if exists "usuarios borran sus deudas" on public.deudas;
 create policy "usuarios borran sus deudas"
   on public.deudas for delete using (auth.uid() = user_id);
 
@@ -130,18 +147,22 @@ create table if not exists public.abonos (
 
 alter table public.abonos enable row level security;
 
+drop policy if exists "usuarios ven sus abonos" on public.abonos;
 create policy "usuarios ven sus abonos"
   on public.abonos for select using (auth.uid() = user_id);
 
+drop policy if exists "usuarios insertan sus abonos" on public.abonos;
 create policy "usuarios insertan sus abonos"
   on public.abonos for insert with check (
     auth.uid() = user_id and
     exists (select 1 from public.deudas where id = deuda_id and user_id = auth.uid())
   );
 
+drop policy if exists "usuarios actualizan sus abonos" on public.abonos;
 create policy "usuarios actualizan sus abonos"
   on public.abonos for update using (auth.uid() = user_id);
 
+drop policy if exists "usuarios borran sus abonos" on public.abonos;
 create policy "usuarios borran sus abonos"
   on public.abonos for delete using (auth.uid() = user_id);
 
@@ -157,15 +178,19 @@ create table if not exists public.metas_ahorro (
 
 alter table public.metas_ahorro enable row level security;
 
+drop policy if exists "usuarios ven sus metas" on public.metas_ahorro;
 create policy "usuarios ven sus metas"
   on public.metas_ahorro for select using (auth.uid() = user_id);
 
+drop policy if exists "usuarios insertan sus metas" on public.metas_ahorro;
 create policy "usuarios insertan sus metas"
   on public.metas_ahorro for insert with check (auth.uid() = user_id);
 
+drop policy if exists "usuarios actualizan sus metas" on public.metas_ahorro;
 create policy "usuarios actualizan sus metas"
   on public.metas_ahorro for update using (auth.uid() = user_id);
 
+drop policy if exists "usuarios borran sus metas" on public.metas_ahorro;
 create policy "usuarios borran sus metas"
   on public.metas_ahorro for delete using (auth.uid() = user_id);
 
@@ -182,18 +207,22 @@ create table if not exists public.abonos_meta (
 
 alter table public.abonos_meta enable row level security;
 
+drop policy if exists "usuarios ven sus abonos de metas" on public.abonos_meta;
 create policy "usuarios ven sus abonos de metas"
   on public.abonos_meta for select using (auth.uid() = user_id);
 
+drop policy if exists "usuarios insertan sus abonos de metas" on public.abonos_meta;
 create policy "usuarios insertan sus abonos de metas"
   on public.abonos_meta for insert with check (
     auth.uid() = user_id and
     exists (select 1 from public.metas_ahorro where id = meta_id and user_id = auth.uid())
   );
 
+drop policy if exists "usuarios actualizan sus abonos de metas" on public.abonos_meta;
 create policy "usuarios actualizan sus abonos de metas"
   on public.abonos_meta for update using (auth.uid() = user_id);
 
+drop policy if exists "usuarios borran sus abonos de metas" on public.abonos_meta;
 create policy "usuarios borran sus abonos de metas"
   on public.abonos_meta for delete using (auth.uid() = user_id);
 
