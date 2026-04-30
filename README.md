@@ -1,13 +1,15 @@
 # Fynt — Personal Finance Dashboard
 
+[![CI](https://github.com/GaiaGomez/Fynt_Tu_Dinero_Bajo_Control/actions/workflows/ci.yml/badge.svg)](https://github.com/GaiaGomez/Fynt_Tu_Dinero_Bajo_Control/actions/workflows/ci.yml)
+
 > Monthly budget tracking, debt management, and savings goals in a single SSR-rendered dashboard.
 > **[Live Demo →](https://fyntt.vercel.app)**
 
-Built around three constraints: no loading spinners for writes, no client-side waterfall on first load, and minimal application-layer authorization — user data access is enforced by Supabase RLS.
+Built around three constraints: no loading spinners for writes, no client-side waterfall on first load, and user data access enforced entirely at the database layer via Supabase RLS.
 
 ---
 
-## Tech Stack
+## Stack
 
 | | |
 |---|---|
@@ -17,8 +19,8 @@ Built around three constraints: no loading spinners for writes, no client-side w
 | Styling | Tailwind CSS with custom design tokens |
 | Fonts | DM Sans + DM Mono, self-hosted via `next/font` |
 | PWA | next-pwa — production only; disabled in CI via `DISABLE_PWA=true` |
-| Tests | Vitest + React Testing Library; Playwright (E2E, local only) |
-| CI | GitHub Actions — lint → test → type-check → build |
+| Tests | Vitest (unit + integration) · Playwright (E2E) |
+| CI | GitHub Actions — lint → test → type-check → build → E2E |
 | Deploy | Vercel |
 | Node | 20, pinned via `.nvmrc` |
 
@@ -30,11 +32,11 @@ Built around three constraints: no loading spinners for writes, no client-side w
 - **Fixed expenses** — categorized recurring costs, paid/unpaid toggle, inline editing
 - **Variable expenses** — daily spending log grouped by category
 - **Income tracking** — multiple sources per period with descriptions
-- **Debt tracker** — total debt, individual payments, payoff progress
+- **Debt tracker** — total balance, individual payments, payoff progress
 - **Savings goals** — set targets, log deposits with notes, view history per goal
 - **Summary tab** — income vs. committed vs. spent vs. available; alert thresholds per category
 - **Auth** — Magic Link and email/password via Supabase; SSR session handling
-- **Optimistic UI** — every write updates immediately; silent rollback on error
+- **Optimistic UI** — every write is reflected immediately; silent rollback on error
 
 ---
 
@@ -42,7 +44,7 @@ Built around three constraints: no loading spinners for writes, no client-side w
 
 ### SSR with no client waterfall
 
-`app/dashboard/page.tsx` is a Server Component. It fires all 7 Supabase queries in a single `Promise.all` before sending HTML — the page arrives fully populated. No loading skeletons on first render.
+`app/dashboard/page.tsx` is a Server Component. It fires all 7 Supabase queries in a single `Promise.all` before sending HTML — the page arrives fully populated, no loading skeletons on first render.
 
 ### Single hook as state layer
 
@@ -54,7 +56,7 @@ Every mutation snapshots the current array, applies the change immediately, then
 
 ### RLS as the only auth boundary
 
-There is no server-side API layer. The browser client uses the anon key and talks directly to Supabase. All data access is gated by PostgreSQL Row Level Security — `auth.uid() = user_id` on every table. `abonos` and `abonos_meta` additionally verify that the parent record belongs to the same user on insert. User-scoped data remains protected by Supabase RLS even if client-side checks are bypassed.
+There is no server-side API layer. The browser client uses the anon key and talks directly to Supabase. All data access is gated by PostgreSQL Row Level Security — `auth.uid() = user_id` on every table. `abonos` and `abonos_meta` additionally verify that the parent record belongs to the same user on insert.
 
 ### `periodo` as a plain string key
 
@@ -75,9 +77,7 @@ nvm use
 npm install
 ```
 
-**Database:** Run [`supabase/schema.sql`](supabase/schema.sql) in the Supabase SQL Editor. Creates all tables, RLS policies, indexes, and the signup trigger that auto-provisions a user profile.
-
-> The schema requires a fresh database — `CREATE POLICY` is not idempotent. Re-running on an existing project will fail on policy lines. Drop all tables first if you need to reset.
+**Database:** Run [`supabase/schema.sql`](supabase/schema.sql) in the Supabase SQL Editor. Creates all tables, RLS policies, indexes, and the signup trigger that auto-provisions a user profile. Safe to re-run against an existing project — all statements use `IF NOT EXISTS` or `DROP … IF EXISTS`.
 
 **Environment:**
 
@@ -114,14 +114,14 @@ npm run dev
 
 ## Testing
 
-**66 unit/integration tests covered by CI.**
+**66 unit/integration tests run in CI alongside a full Playwright E2E suite on Chromium.**
 
-| Layer | File | Tests | Coverage |
+| Layer | File | Tests | What's covered |
 |---|---|---|---|
 | Unit | `tests/unit/utils.test.ts` | 24 | `fmtCOP`, period helpers, edge cases, round-trip invariants |
 | Unit | `tests/unit/calculations.test.ts` | 23 | All finance functions, boundary and empty-array cases |
 | Integration | `tests/integration/useDashboard.test.ts` | 19 | Derived values, optimistic update, snapshot rollback |
-| E2E | `tests/e2e/dashboard.spec.ts` | local only | Navigation, tab routing, empty states, auth flow |
+| E2E | `tests/e2e/dashboard.spec.ts` | CI + local | Navigation, tab routing, empty states, auth flow |
 
 The integration tests mock Supabase with a chainable `PromiseLike` builder that mirrors the SDK's query API, so optimistic update cycles (including rollback) run without a live database.
 
@@ -131,20 +131,6 @@ Full rationale: [docs/testing.md](docs/testing.md)
 
 ## Security
 
-RLS is enabled on every table. All policies enforce `auth.uid() = user_id` at the database level — not in application code. Both anon key and Supabase URL are `NEXT_PUBLIC_` because the security model relies on RLS, not on keeping those values secret.
+RLS is enabled on every table. All policies enforce `auth.uid() = user_id` at the database level — not in application code. Both the anon key and Supabase URL are `NEXT_PUBLIC_` because the security model relies on RLS, not on keeping those values secret.
 
 Full policy table: [docs/security.md](docs/security.md)
-
----
-
-## Known Limitations
-
-- **E2E tests are local-only** — CI runs lint, unit/integration tests, type-check, and build. Playwright tests require a running dev server and a browser environment.
-
----
-
-## What I Would Do Differently
-
-- **Split `useDashboard` by domain** — `useFijos`, `useDeudas`, `useMetas` — to reduce cognitive load per file. The single-hook approach is clean at this scale but starts to strain past ~500 lines.
-- **Store `periodo` in the URL** — a search param would make monthly views bookmarkable and shareable without adding complexity.
-- **Authenticated E2E tests** — the Playwright suite currently covers only unauthenticated views. Seeded-user tests would cover the full add/edit/delete flows end to end.
