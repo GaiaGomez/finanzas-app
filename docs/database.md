@@ -44,3 +44,11 @@ A `AFTER INSERT ON auth.users` trigger calls `handle_new_user()`, which inserts 
 1. Open your Supabase project → SQL Editor → New query.
 2. Paste the contents of `supabase/schema.sql` and run.
 3. This creates all tables, enables RLS, creates all policies, creates indexes, and installs the trigger.
+
+## Demo seed data
+
+[`supabase/seed_demo.sql`](../supabase/seed_demo.sql) populates the demo account (`demo@fynt.app`, user ID `aafa4170-1088-4343-a5b2-740aa480ae81`) with fictional COP data across two periods (2026-03 and 2026-04).
+
+**Prerequisites:** the demo auth user must already exist in `auth.users` before running the seed. Create the user in Supabase Auth (Authentication → Users → Invite / Create) using the credentials in the README, then run the seed script.
+
+The script is rerunnable — it deletes all existing rows for the demo user before inserting, so it can be re-applied at any time to reset the demo state.

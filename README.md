@@ -9,6 +9,17 @@ Built around three constraints: no loading spinners for writes, no client-side w
 
 ---
 
+## Demo Account
+
+| | |
+|---|---|
+| Email | `demo@fynt.app` |
+| Password | `fynt2026*` |
+
+All data is fictional. Feel free to add, edit, or delete anything — the account resets periodically.
+
+---
+
 ## Stack
 
 | | |
